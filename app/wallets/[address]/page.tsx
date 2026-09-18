@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -7,6 +6,7 @@ import { normalizeAddress } from "@/lib/chain/address";
 import { getWalletProfile, type WalletProfile } from "@/lib/wallet/profile";
 import type { Proof, ProofType } from "@/lib/score/proofs";
 import type { DimensionState } from "@/lib/score/dimensions";
+import { WalletShell } from "@/components/wallet-shell";
 import { CopyAddress } from "@/components/copy-address";
 import { AliasEditor } from "@/components/alias-editor";
 import { AttestationForm } from "@/components/attestation-form";
@@ -404,62 +404,35 @@ export default async function WalletProfilePage({
   const profile = await getWalletProfile(address);
 
   return (
-    <div className="relative min-h-screen">
-      <div className="bg-stars" />
-      <div className="bg-grid" />
-
-      <header className="border-b border-white/5 bg-black/20 backdrop-blur-xl">
-        <div className="mx-auto flex h-20 max-w-5xl items-center justify-between px-5 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Image
-              src="/logo-no-bg.png"
-              alt="Fathom"
-              width={40}
-              height={40}
-              className="h-10 w-10"
-            />
-            <span className="font-display text-lg font-semibold tracking-tight">
-              Fathom
+    <WalletShell>
+      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate400">
+        Wallet profile
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-4">
+        <h1 className="font-display text-3xl font-medium sm:text-4xl">
+          {shortAddress(address)}
+        </h1>
+        <CopyAddress address={address} />
+        {profile.alias && (
+          <span className="rounded-full border border-white/15 px-3 py-1 text-sm text-white">
+            {profile.alias}
+            <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.18em] text-slate400">
+              unverified
             </span>
-          </Link>
-          <Link
-            href="/"
-            className="rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-white transition hover:border-white/40"
-          >
-            Search another wallet
-          </Link>
-        </div>
-      </header>
+          </span>
+        )}
+      </div>
+      <p className="mt-3 break-all font-mono text-xs text-slate400">
+        {address}
+      </p>
+      <p className="mt-3 text-xs text-slate400">
+        {profile.claimedAt
+          ? `Ownership proven · ${formatDate(profile.claimedAt)}`
+          : "Unclaimed — owner has not signed in yet."}
+      </p>
+      <AliasEditor address={address} initialAlias={profile.alias} />
 
-      <main className="relative z-10 mx-auto max-w-5xl px-5 pb-24 pt-12 sm:px-6 lg:px-8">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate400">
-          Wallet profile
-        </p>
-        <div className="mt-3 flex flex-wrap items-center gap-4">
-          <h1 className="font-display text-3xl font-medium sm:text-4xl">
-            {shortAddress(address)}
-          </h1>
-          <CopyAddress address={address} />
-          {profile.alias && (
-            <span className="rounded-full border border-white/15 px-3 py-1 text-sm text-white">
-              {profile.alias}
-              <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.18em] text-slate400">
-                unverified
-              </span>
-            </span>
-          )}
-        </div>
-        <p className="mt-3 break-all font-mono text-xs text-slate400">
-          {address}
-        </p>
-        <p className="mt-3 text-xs text-slate400">
-          {profile.claimedAt
-            ? `Ownership proven · ${formatDate(profile.claimedAt)}`
-            : "Unclaimed — owner has not signed in yet."}
-        </p>
-        <AliasEditor address={address} initialAlias={profile.alias} />
-
-        <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Field
             label="Wallet age"
             value={
@@ -584,7 +557,6 @@ export default async function WalletProfilePage({
             </p>
           </div>
         </section>
-      </main>
-    </div>
+    </WalletShell>
   );
 }

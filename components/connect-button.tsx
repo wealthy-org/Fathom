@@ -175,14 +175,14 @@ export function ConnectButton({
 
   if (signedIn) {
     return (
-      <span className="inline-flex items-center gap-2">
-        <span className="rounded-full border border-white/15 px-4 py-2 font-mono text-sm text-white">
+      <span className="inline-flex flex-wrap items-center justify-end gap-2">
+        <span className="rounded-full border border-white/15 px-3 py-2 font-mono text-xs text-white sm:px-4 sm:text-sm">
           {shortAddress(address!)}
         </span>
         <button
           type="button"
           onClick={() => void handleDisconnect()}
-          className="rounded-full border border-white/15 px-4 py-2 text-sm text-white/70 transition hover:border-red-400/60 hover:text-red-300"
+          className="rounded-full border border-white/15 px-3 py-2 text-xs text-white/70 transition hover:border-red-400/60 hover:text-red-300 sm:px-4 sm:text-sm"
         >
           Disconnect
         </button>
