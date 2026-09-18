@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -301,6 +302,41 @@ function TrustGraphSection({
       )}
     </section>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ address: string }>;
+}): Promise<Metadata> {
+  const parsed = paramsSchema.safeParse(await params);
+  if (!parsed.success) return {};
+
+  const address = normalizeAddress(parsed.data.address);
+  const profile = await getWalletProfile(address);
+  const title = `Fathom — ${shortAddress(address)}`;
+
+  const metrics: string[] = [];
+  if (profile.walletAgeDays !== null) metrics.push(`${profile.walletAgeDays}d old`);
+  if (profile.txCount !== null) metrics.push(`${profile.txCount} transactions`);
+  metrics.push(
+    `${profile.trustGraph.uniqueCounterparties} unique counterparties`,
+  );
+
+  return {
+    title,
+    description: `Reputation evidence for ${title}. ${metrics.join(", ")}. Evidence before score.`,
+    openGraph: {
+      title,
+      description: "Evidence-backed wallet reputation from Fathom.",
+      type: "profile",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: "Evidence-backed wallet reputation from Fathom.",
+    },
+  };
 }
 
 export default async function WalletProfilePage({
