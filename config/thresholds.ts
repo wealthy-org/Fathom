@@ -26,6 +26,13 @@ export const THRESHOLDS = {
     cacheTtlHours: 24,
   },
 
+  attestation: {
+    // Batas input attestation terstruktur (Spec 07). Bukan nilai scoring.
+    maxRelationshipLength: 64,
+    // Batas atas durasi (bulan) — sekadar validasi input, bukan bobot.
+    maxDurationMonths: 1200,
+  },
+
   proof: {
     // Model confidence Spec 02: nilai statis per verification_method (bukan dituning per-proof).
     // indexed  = diambil langsung dari sumber indexed apa adanya.

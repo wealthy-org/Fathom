@@ -64,7 +64,7 @@ const DEFINITIONS: DimensionDefinition[] = [
     id: "community_trust",
     label: "Community Trust",
     proofTypes: [],
-    reason: "Vouches and attestations are not yet indexed.",
+    reason: "Attestations are stored but not yet converted into proofs.",
     suppliedBy: "Spec 07 / Spec 08",
   },
   {

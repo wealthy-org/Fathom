@@ -40,6 +40,8 @@ export const wallets = pgTable(
       (): AnyPgColumn => wallets.address,
     ),
     firstSeenAt: timestamptz("first_seen_at").notNull().defaultNow(),
+    // Bukti ownership: kapan pemilik berhasil SIWE (Spec 06). Claim tidak menciptakan reputasi.
+    claimedAt: timestamptz("claimed_at"),
     createdAt: timestamptz("created_at").notNull().defaultNow(),
     updatedAt: timestamptz("updated_at").notNull().defaultNow(),
   },
@@ -227,6 +229,36 @@ export const badgeAttestations = pgTable(
     createdAt: timestamptz("created_at").notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.badgeId, t.attesterAddress] })],
+);
+
+export const attestations = pgTable(
+  "attestations",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    subjectAddress: char("subject_address", { length: 42 })
+      .notNull()
+      .references(() => wallets.address),
+    attesterAddress: char("attester_address", { length: 42 })
+      .notNull()
+      .references(() => wallets.address),
+    role: varchar("role", { length: 32 }).notNull(),
+    relationship: varchar("relationship", { length: 64 }).notNull(),
+    durationMonths: integer("duration_months"),
+    // Payload kanonik yang ditandatangani + signature (Spec 07) — attestation
+    // bisa diverifikasi ulang, bukan cuma baris DB yang bisa dipalsukan server.
+    message: text("message").notNull(),
+    signature: char("signature", { length: 132 }).notNull(),
+    createdAt: timestamptz("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    // Satu attester hanya satu attestation per subject+role — cegah spam duplikat.
+    unique("attestations_identity").on(
+      t.attesterAddress,
+      t.subjectAddress,
+      t.role,
+    ),
+    index("idx_attestations_subject").on(t.subjectAddress, t.createdAt),
+  ],
 );
 
 export const scoreSnapshots = pgTable(

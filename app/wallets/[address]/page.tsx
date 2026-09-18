@@ -7,6 +7,8 @@ import { getWalletProfile, type WalletProfile } from "@/lib/wallet/profile";
 import type { Proof, ProofType } from "@/lib/score/proofs";
 import type { DimensionState } from "@/lib/score/dimensions";
 import { CopyAddress } from "@/components/copy-address";
+import { AliasEditor } from "@/components/alias-editor";
+import { AttestationForm } from "@/components/attestation-form";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +104,78 @@ function DimensionRow({ dimension }: { dimension: DimensionState }) {
         </p>
       )}
     </li>
+  );
+}
+
+function AttestationsSection({
+  address,
+  attestations,
+}: {
+  address: string;
+  attestations: WalletProfile["attestations"];
+}) {
+  return (
+    <section className="mt-10">
+      <h2 className="font-display text-lg">Attestations</h2>
+      <p className="mt-2 max-w-2xl text-sm text-slate400">
+        Structured, signed claims from other wallets. Attestations are
+        supporting evidence — they never replace on-chain behavior, and they do
+        not create reputation on their own.
+      </p>
+
+      {attestations.length === 0 ? (
+        <div className="shine-border mt-5 rounded-2xl border border-white/5 bg-white/[0.02] p-6 text-sm text-slate400">
+          No attestations for this wallet yet.
+        </div>
+      ) : (
+        <ul className="mt-5 space-y-3">
+          {attestations.map((attestation) => (
+            <li
+              key={attestation.id}
+              className="shine-border rounded-2xl border border-white/5 bg-white/[0.02] p-5"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-display text-base">
+                  {attestation.role}
+                </span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
+                  signed
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-white">
+                {attestation.relationship}
+                {attestation.durationMonths !== null &&
+                  ` · ${attestation.durationMonths} months`}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 font-mono text-[11px] text-slate400">
+                <span>
+                  attester:{" "}
+                  <Link
+                    href={`/wallets/${attestation.attester}`}
+                    className="text-accent hover:underline"
+                  >
+                    {shortAddress(attestation.attester)}
+                  </Link>
+                </span>
+                <span>at: {formatDate(attestation.createdAt)}</span>
+              </div>
+              <details className="mt-3">
+                <summary className="cursor-pointer text-xs text-slate400">
+                  Verify signature
+                </summary>
+                <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all font-mono text-[10px] text-slate400">
+                  {attestation.message}
+                  {"\n"}
+                  {attestation.signature}
+                </pre>
+              </details>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <AttestationForm subject={address} />
+    </section>
   );
 }
 
@@ -210,10 +284,24 @@ export default async function WalletProfilePage({
             {shortAddress(address)}
           </h1>
           <CopyAddress address={address} />
+          {profile.alias && (
+            <span className="rounded-full border border-white/15 px-3 py-1 text-sm text-white">
+              {profile.alias}
+              <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.18em] text-slate400">
+                unverified
+              </span>
+            </span>
+          )}
         </div>
         <p className="mt-3 break-all font-mono text-xs text-slate400">
           {address}
         </p>
+        <p className="mt-3 text-xs text-slate400">
+          {profile.claimedAt
+            ? `Ownership proven · ${formatDate(profile.claimedAt)}`
+            : "Unclaimed — owner has not signed in yet."}
+        </p>
+        <AliasEditor address={address} initialAlias={profile.alias} />
 
         <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Field
@@ -262,8 +350,13 @@ export default async function WalletProfilePage({
         <TrustGraphSection graph={profile.trustGraph} />
 
         <UnavailableSection
-          title="Attestations / Vouches"
-          note="Structured attestations and vouches have not been indexed yet. This section will populate once Spec 07 and Spec 08 are implemented."
+          title="Vouches"
+          note="Economic backing (stake) is not implemented yet. It requires anti-farming rules that the spec has not defined (Spec 08)."
+        />
+
+        <AttestationsSection
+          address={address}
+          attestations={profile.attestations}
         />
 
         <section className="mt-10">

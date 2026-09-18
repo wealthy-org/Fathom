@@ -1,4 +1,5 @@
 import type {
+  attestations,
   badgeAttestations,
   counterparties,
   disputes,
@@ -25,5 +26,6 @@ export type Dispute = typeof disputes.$inferSelect;
 export type DisputeReport = typeof disputeReports.$inferSelect;
 export type RoleBadge = typeof roleBadges.$inferSelect;
 export type BadgeAttestation = typeof badgeAttestations.$inferSelect;
+export type Attestation = typeof attestations.$inferSelect;
 export type ScoreSnapshot = typeof scoreSnapshots.$inferSelect;
 export type IndexerState = typeof indexerState.$inferSelect;

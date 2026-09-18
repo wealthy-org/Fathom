@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { SiweMessage } from "siwe";
+import { sql } from "drizzle-orm";
 import { normalizeAddress } from "@/lib/chain/address";
 import { getSession } from "@/lib/auth/session";
 import { authError } from "@/lib/auth/http";
@@ -65,7 +66,15 @@ export async function POST(req: NextRequest) {
   session.nonce = undefined;
 
   const address = normalizeAddress(siweMessage.address);
-  await db.insert(wallets).values({ address }).onConflictDoNothing();
+  // Claim Profile (Spec 06): SIWE yang terverifikasi = bukti ownership.
+  // claimed_at diisi sekali (coalesce) — re-verify tidak mengubahnya. Tidak menyentuh reputasi.
+  await db
+    .insert(wallets)
+    .values({ address, claimedAt: new Date() })
+    .onConflictDoUpdate({
+      target: wallets.address,
+      set: { claimedAt: sql`coalesce(${wallets.claimedAt}, now())` },
+    });
 
   session.walletAddress = address;
   session.authenticated = true;
