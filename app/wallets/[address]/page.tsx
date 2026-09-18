@@ -116,7 +116,7 @@ function Field({
   note?: string;
 }) {
   return (
-    <div className="shine-border rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+    <div className="shine-border rounded-2xl border border-ink/10 bg-ink/[0.03] p-5">
       <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-slate400">
         {label}
       </div>
@@ -128,12 +128,12 @@ function Field({
 
 function DimensionRow({ dimension }: { dimension: DimensionState }) {
   return (
-    <li className="shine-border rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+    <li className="shine-border rounded-2xl border border-ink/10 bg-ink/[0.03] p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-display text-base">{dimension.label}</span>
         <span
           className={`font-mono text-[10px] uppercase tracking-[0.18em] ${
-            dimension.status === "supported" ? "text-accent" : "text-slate400"
+            dimension.status === "supported" ? "text-accent-ink" : "text-slate400"
           }`}
         >
           {dimension.status}
@@ -169,7 +169,7 @@ function AttestationsSection({
       </p>
 
       {attestations.length === 0 ? (
-        <div className="shine-border mt-5 rounded-2xl border border-white/5 bg-white/[0.02] p-6 text-sm text-slate400">
+        <div className="shine-border mt-5 rounded-2xl border border-ink/10 bg-ink/[0.03] p-6 text-sm text-slate400">
           No attestations for this wallet yet.
         </div>
       ) : (
@@ -177,17 +177,17 @@ function AttestationsSection({
           {attestations.map((attestation) => (
             <li
               key={attestation.id}
-              className="shine-border rounded-2xl border border-white/5 bg-white/[0.02] p-5"
+              className="shine-border rounded-2xl border border-ink/10 bg-ink/[0.03] p-5"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-display text-base">
                   {attestation.role}
                 </span>
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent-ink">
                   signed
                 </span>
               </div>
-              <p className="mt-2 text-sm text-white">
+              <p className="mt-2 text-sm text-ink">
                 {attestation.relationship}
                 {attestation.durationMonths !== null &&
                   ` · ${attestation.durationMonths} months`}
@@ -197,7 +197,7 @@ function AttestationsSection({
                   attester:{" "}
                   <Link
                     href={`/wallets/${attestation.attester}`}
-                    className="text-accent hover:underline"
+                    className="text-accent-ink hover:underline"
                   >
                     {shortAddress(attestation.attester)}
                   </Link>
@@ -241,7 +241,7 @@ function DisputesSection({
       </p>
 
       {disputes.length === 0 ? (
-        <div className="shine-border mt-5 rounded-2xl border border-white/5 bg-white/[0.02] p-6 text-sm text-slate400">
+        <div className="shine-border mt-5 rounded-2xl border border-ink/10 bg-ink/[0.03] p-6 text-sm text-slate400">
           No disputes filed against this wallet.
         </div>
       ) : (
@@ -249,7 +249,7 @@ function DisputesSection({
           {disputes.map((dispute) => (
             <li
               key={dispute.id}
-              className="shine-border rounded-2xl border border-white/5 bg-white/[0.02] p-5"
+              className="shine-border rounded-2xl border border-ink/10 bg-ink/[0.03] p-5"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-display text-base">{dispute.reason}</span>
@@ -257,7 +257,7 @@ function DisputesSection({
                   {dispute.status}
                 </span>
               </div>
-              <p className="mt-2 whitespace-pre-wrap break-words text-sm text-white">
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm text-ink">
                 {dispute.evidence}
               </p>
               <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 font-mono text-[11px] text-slate400">
@@ -265,7 +265,7 @@ function DisputesSection({
                   reporter:{" "}
                   <Link
                     href={`/wallets/${dispute.reporter}`}
-                    className="text-accent hover:underline"
+                    className="text-accent-ink hover:underline"
                   >
                     {shortAddress(dispute.reporter)}
                   </Link>
@@ -302,7 +302,7 @@ function UnavailableSection({
   return (
     <section className="mt-10">
       <h2 className="font-display text-lg">{title}</h2>
-      <div className="shine-border mt-4 rounded-2xl border border-white/5 bg-white/[0.02] p-6 text-sm text-slate400">
+      <div className="shine-border mt-4 rounded-2xl border border-ink/10 bg-ink/[0.03] p-6 text-sm text-slate400">
         {note}
       </div>
     </section>
@@ -319,7 +319,7 @@ function TrustGraphSection({
     <section className="mt-10">
       <h2 className="font-display text-lg">Trust Graph Summary</h2>
       {graph.relationships.length === 0 ? (
-        <div className="shine-border mt-4 rounded-2xl border border-white/5 bg-white/[0.02] p-6 text-sm text-slate400">
+        <div className="shine-border mt-4 rounded-2xl border border-ink/10 bg-ink/[0.03] p-6 text-sm text-slate400">
           No counterparty relationships indexed for this wallet yet.
         </div>
       ) : (
@@ -414,7 +414,7 @@ export default async function WalletProfilePage({
         </h1>
         <CopyAddress address={address} />
         {profile.alias && (
-          <span className="rounded-full border border-white/15 px-3 py-1 text-sm text-white">
+          <span className="rounded-full border border-ink/15 px-3 py-1 text-sm text-ink">
             {profile.alias}
             <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.18em] text-slate400">
               unverified
@@ -499,7 +499,7 @@ export default async function WalletProfilePage({
           </p>
 
           {profile.proofs.length === 0 ? (
-            <div className="shine-border mt-5 rounded-2xl border border-white/5 bg-white/[0.02] p-6 text-sm text-slate400">
+            <div className="shine-border mt-5 rounded-2xl border border-ink/10 bg-ink/[0.03] p-6 text-sm text-slate400">
               No proof can be produced for this wallet yet.
             </div>
           ) : (
@@ -507,7 +507,7 @@ export default async function WalletProfilePage({
               {profile.proofs.map((proof, index) => (
                 <li
                   key={`${proof.type}-${index}`}
-                  className="shine-border rounded-2xl border border-white/5 bg-white/[0.02] p-5"
+                  className="shine-border rounded-2xl border border-ink/10 bg-ink/[0.03] p-5"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="font-display text-base">
@@ -517,7 +517,7 @@ export default async function WalletProfilePage({
                       {proof.type}
                     </span>
                   </div>
-                  <p className="mt-2 font-mono text-sm text-white">
+                  <p className="mt-2 font-mono text-sm text-ink">
                     {formatProofValue(proof)}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 font-mono text-[11px] text-slate400">
@@ -529,7 +529,7 @@ export default async function WalletProfilePage({
                     href={proof.evidence_reference}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-2 inline-block break-all font-mono text-[11px] text-accent hover:underline"
+                    className="mt-2 inline-block break-all font-mono text-[11px] text-accent-ink hover:underline"
                   >
                     {proof.evidence_reference}
                   </a>
@@ -546,8 +546,8 @@ export default async function WalletProfilePage({
             intentionally not locked early (PRD §13). Until then, the profile
             exposes the path a score will have to justify:
           </p>
-          <div className="shine-border mt-5 rounded-2xl border border-white/5 bg-white/[0.02] p-6">
-            <p className="font-mono text-sm text-white">
+          <div className="shine-border mt-5 rounded-2xl border border-ink/10 bg-ink/[0.03] p-6">
+            <p className="font-mono text-sm text-ink">
               Score → Why? → Dimension → Proof → Evidence
             </p>
             <p className="mt-3 text-sm text-slate400">

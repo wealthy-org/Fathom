@@ -1,12 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-  --color-void: #020408;
-  --color-surface: #0b0f17;
-  --color-terminal: #030508;
+  --color-ink: #0b0f17;
   --color-accent: #14f195;
+  --color-accent-ink: #0f9d63;
   --color-purple: #9945ff;
-  --color-slate400: #94a3b8;
+  --color-slate400: #64748b;
 
   --font-sans: var(--font-sans), sans-serif;
   --font-display: var(--font-display), sans-serif;
@@ -29,19 +28,19 @@
 
 html {
   scroll-behavior: smooth;
-  background: #020408;
+  background: #f6f8fa;
 }
 
 body {
-  background: #020408;
-  color: #fff;
+  background: #f6f8fa;
+  color: #0b0f17;
   font-family: var(--font-sans), sans-serif;
   overflow-x: hidden;
 }
 
 ::selection {
-  background: rgba(20, 241, 149, 0.2);
-  color: white;
+  background: rgba(20, 241, 149, 0.28);
+  color: #0b0f17;
 }
 
 /* fixed background layers */
@@ -50,7 +49,7 @@ body {
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px);
   background-size: 50px 50px;
 }
 
@@ -60,11 +59,26 @@ body {
   z-index: -1;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(20, 241, 149, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(20, 241, 149, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(15, 23, 42, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.045) 1px, transparent 1px);
   background-size: 40px 40px;
   mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, black 0%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, black 0%, transparent 100%);
+}
+
+/* gradient hairline on top of cards */
+.shine-border {
+  position: relative;
+}
+.shine-border::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #0f9d63, #9945ff, #0f9d63, transparent);
+  opacity: 0.8;
 }
 
 .glow-spot {
@@ -74,8 +88,8 @@ body {
   border-radius: 9999px;
   background: radial-gradient(
     circle,
-    rgba(20, 241, 149, 0.12) 0%,
-    rgba(153, 69, 255, 0.05) 35%,
+    rgba(20, 241, 149, 0.07) 0%,
+    rgba(153, 69, 255, 0.04) 35%,
     transparent 70%
   );
   filter: blur(60px);
@@ -92,49 +106,16 @@ body {
   bottom: -200px;
 }
 
-/* gradient hairline on top of terminal cards */
-.shine-border {
-  position: relative;
-}
-.shine-border::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #14f195, #9945ff, #14f195, transparent);
-  opacity: 0.8;
-}
-
 .glass {
-  background: rgba(11, 15, 23, 0.58);
+  background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-}
-
-/* blurred until hovered */
-.secret-reveal {
-  filter: blur(6px);
-  transition: filter 0.3s ease;
-}
-.secret-reveal:hover {
-  filter: blur(0);
 }
 
 .terminal-line {
   font-family: var(--font-mono), monospace;
   font-size: 11px;
   line-height: 1.8;
-}
-
-.solana-button {
-  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.18))
-    drop-shadow(0 0 30px rgba(255, 255, 255, 0.08));
-}
-
-.process-line {
-  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.1), transparent);
 }
 
 @media (max-width: 767px) {

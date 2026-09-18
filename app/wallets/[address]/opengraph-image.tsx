@@ -15,11 +15,12 @@ const paramsSchema = z.object({
 });
 
 // Warna dari app/globals.css (@theme). Route OG tidak bisa pakai kelas Tailwind.
-const VOID = "#020408";
-const ACCENT = "#14f195";
+const VOID = "#f6f8fa";
+const ACCENT = "#0f9d63";
 const PURPLE = "#9945ff";
-const SLATE = "#94a3b8";
-const BORDER = "rgba(255,255,255,0.08)";
+const SLATE = "#64748b";
+const BORDER = "rgba(15,23,42,0.12)";
+const INK = "#0b0f17";
 
 function shortAddress(address: string) {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
@@ -51,7 +52,7 @@ function Metric({ label, value }: { label: string; value: string }) {
         padding: "20px 22px",
         borderRadius: 18,
         border: `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.02)",
+        background: "rgba(15,23,42,0.03)",
       }}
     >
       <span
@@ -64,7 +65,7 @@ function Metric({ label, value }: { label: string; value: string }) {
       >
         {label}
       </span>
-      <span style={{ fontSize: 34, color: "#ffffff" }}>{value}</span>
+      <span style={{ fontSize: 34, color: INK }}>{value}</span>
     </div>
   );
 }
@@ -96,8 +97,8 @@ export default async function Image({
           flexDirection: "column",
           justifyContent: "space-between",
           padding: 64,
-          background: `radial-gradient(circle at 15% 0%, rgba(153,69,255,0.28), transparent 45%), radial-gradient(circle at 85% 100%, rgba(20,241,149,0.18), transparent 45%), ${VOID}`,
-          color: "#ffffff",
+          background: `radial-gradient(circle at 15% 0%, rgba(153,69,255,0.10), transparent 45%), radial-gradient(circle at 85% 100%, rgba(20,241,149,0.10), transparent 45%), ${VOID}`,
+          color: INK,
           fontFamily: "sans-serif",
         }}
       >
@@ -125,7 +126,7 @@ export default async function Image({
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-            <span style={{ fontSize: 60, color: "#ffffff" }}>
+            <span style={{ fontSize: 60, color: INK }}>
               {shortAddress(address)}
             </span>
             {profile.alias && (
