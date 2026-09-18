@@ -911,7 +911,7 @@ export default function Home() {
                   ))}
                 </div>
                 <a
-                  href="#"
+                  href="#trust-graph"
                   className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-accent"
                 >
                   Explore the Trust Graph <Arrow />
@@ -1189,7 +1189,10 @@ export default function Home() {
                 <span className="terminal-line text-white/60">
                   GET /reputation/0x7A3…91F2
                 </span>
-                <pre className="terminal-line mt-4 overflow-x-auto text-accent">
+                <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-slate400">
+                  Illustrative shape — not live output
+                </p>
+                <pre className="terminal-line mt-2 overflow-x-auto text-accent">
 {`{
   "wallet": "0x7A3…91F2",
   "reputation": 812,
@@ -1207,7 +1210,7 @@ export default function Home() {
             </div>
             <div className="card mt-10">
               <a
-                href="#"
+                href="#builders"
                 className="inline-flex items-center gap-2 text-sm font-medium text-accent"
               >
                 Explore the API <Arrow />
@@ -1249,37 +1252,29 @@ export default function Home() {
                   Privacy-first on-chain trust layer.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-10 sm:grid-cols-4">
-                {[
-                  [
-                    "Product",
-                    ["Search Wallet", "Proof of Reputation", "Trust Graph", "Reputation API"],
-                  ],
-                  [
-                    "Resources",
-                    ["Documentation", "How It Works", "Integrations"],
-                  ],
-                  ["Community", ["X", "Discord", "GitHub"]],
-                  ["Legal", ["Privacy", "Terms"]],
-                ].map(([group, links]) => (
-                  <div key={group as string}>
-                    <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
-                      {group}
-                    </div>
-                    <ul className="mt-4 space-y-2">
-                      {(links as string[]).map((l) => (
-                        <li key={l}>
-                          <a
-                            href="#"
-                            className="text-sm text-white/60 transition hover:text-white"
-                          >
-                            {l}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+              <div>
+                <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
+                  Product
+                </div>
+                <ul className="mt-4 space-y-2">
+                  {(
+                    [
+                      ["How It Works", "#how"],
+                      ["Proof", "#proof"],
+                      ["Trust Graph", "#trust-graph"],
+                      ["For Builders", "#builders"],
+                    ] as Array<[string, string]>
+                  ).map(([label, href]) => (
+                    <li key={href}>
+                      <a
+                        href={href}
+                        className="text-sm text-white/60 transition hover:text-white"
+                      >
+                        {label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
             <div className="mt-14 border-t border-white/5 pt-6 text-xs text-slate400">
