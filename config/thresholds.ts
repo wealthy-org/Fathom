@@ -85,6 +85,9 @@ export const THRESHOLDS = {
   },
 
   dispute: {
+    // Batas input (bukan parameter skor) untuk reason/evidence dispute (Spec 09).
+    maxReasonLength: 500,
+    maxEvidenceLength: 2000,
     // Penalti = subtotal * penaltyRatio, dipotong selama dispute open
     penaltyRatio: 0.5,
     // TBD — jumlah report dari wallet berbeda yang memicu freeze (PRD §10.1)

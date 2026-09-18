@@ -9,6 +9,7 @@ import type { DimensionState } from "@/lib/score/dimensions";
 import { CopyAddress } from "@/components/copy-address";
 import { AliasEditor } from "@/components/alias-editor";
 import { AttestationForm } from "@/components/attestation-form";
+import { DisputeForm } from "@/components/dispute-form";
 
 export const dynamic = "force-dynamic";
 
@@ -175,6 +176,74 @@ function AttestationsSection({
       )}
 
       <AttestationForm subject={address} />
+    </section>
+  );
+}
+
+function DisputesSection({
+  address,
+  disputes,
+}: {
+  address: string;
+  disputes: WalletProfile["disputes"];
+}) {
+  return (
+    <section className="mt-10">
+      <h2 className="font-display text-lg">Disputes</h2>
+      <p className="mt-2 max-w-2xl text-sm text-slate400">
+        Signed reports filed against this wallet. A dispute is a claim, not
+        proof of wrongdoing — it never changes reputation or risk here. No
+        resolution process exists yet, so every dispute stays open.
+      </p>
+
+      {disputes.length === 0 ? (
+        <div className="shine-border mt-5 rounded-2xl border border-white/5 bg-white/[0.02] p-6 text-sm text-slate400">
+          No disputes filed against this wallet.
+        </div>
+      ) : (
+        <ul className="mt-5 space-y-3">
+          {disputes.map((dispute) => (
+            <li
+              key={dispute.id}
+              className="shine-border rounded-2xl border border-white/5 bg-white/[0.02] p-5"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-display text-base">{dispute.reason}</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-slate400">
+                  {dispute.status}
+                </span>
+              </div>
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm text-white">
+                {dispute.evidence}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 font-mono text-[11px] text-slate400">
+                <span>
+                  reporter:{" "}
+                  <Link
+                    href={`/wallets/${dispute.reporter}`}
+                    className="text-accent hover:underline"
+                  >
+                    {shortAddress(dispute.reporter)}
+                  </Link>
+                </span>
+                <span>at: {formatDate(dispute.openedAt)}</span>
+              </div>
+              <details className="mt-3">
+                <summary className="cursor-pointer text-xs text-slate400">
+                  Verify signature
+                </summary>
+                <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all font-mono text-[10px] text-slate400">
+                  {dispute.message}
+                  {"\n"}
+                  {dispute.signature}
+                </pre>
+              </details>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <DisputeForm target={address} />
     </section>
   );
 }
@@ -358,6 +427,8 @@ export default async function WalletProfilePage({
           address={address}
           attestations={profile.attestations}
         />
+
+        <DisputesSection address={address} disputes={profile.disputes} />
 
         <section className="mt-10">
           <h2 className="font-display text-lg">Recent Proofs</h2>

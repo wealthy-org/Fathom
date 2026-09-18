@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { attestations, wallets } from "@/lib/db/schema";
+import { attestations, disputes, wallets } from "@/lib/db/schema";
 import { onchainStats } from "@/lib/chain/onchain-stats";
 import { trustGraph, type TrustGraphSummary } from "@/lib/chain/trust-graph";
 import { generateProofs, type Proof } from "@/lib/score/proofs";
@@ -21,6 +21,18 @@ export interface AttestationView {
   createdAt: string;
 }
 
+/** Dispute publik (Spec 09) — report, bukan bukti wrongdoing. message+signature ikut supaya bisa diverifikasi ulang. */
+export interface DisputeView {
+  id: number;
+  reporter: Address;
+  reason: string;
+  evidence: string;
+  message: string;
+  signature: string;
+  status: string;
+  openedAt: string;
+}
+
 export interface WalletProfile {
   address: Address;
   alias: string | null;
@@ -34,9 +46,10 @@ export interface WalletProfile {
   dimensions: DimensionState[];
   trustGraph: TrustGraphSummary;
   attestations: AttestationView[];
+  disputes: DisputeView[];
 }
 
-/** Basic profile (Spec 01) + proof (Spec 02) + dimensions (Spec 03) + trust graph (Spec 04) + claim (Spec 06) + attestations (Spec 07). Data yang tidak tersedia tetap null — jangan dikarang. */
+/** Basic profile (Spec 01) + proof (Spec 02) + dimensions (Spec 03) + trust graph (Spec 04) + claim (Spec 06) + attestations (Spec 07) + disputes (Spec 09). Data yang tidak tersedia tetap null — jangan dikarang. */
 export async function getWalletProfile(address: Address): Promise<WalletProfile> {
   const [wallet] = await db
     .select({
@@ -67,6 +80,21 @@ export async function getWalletProfile(address: Address): Promise<WalletProfile>
     .where(eq(attestations.subjectAddress, address))
     .orderBy(desc(attestations.createdAt));
 
+  const disputeRows = await db
+    .select({
+      id: disputes.id,
+      reporter: disputes.reporterAddress,
+      reason: disputes.reason,
+      evidence: disputes.evidence,
+      message: disputes.message,
+      signature: disputes.signature,
+      status: disputes.status,
+      openedAt: disputes.openedAt,
+    })
+    .from(disputes)
+    .where(eq(disputes.targetAddress, address))
+    .orderBy(desc(disputes.openedAt));
+
   return {
     address,
     alias: wallet?.alias ?? null,
@@ -91,6 +119,16 @@ export async function getWalletProfile(address: Address): Promise<WalletProfile>
       message: row.message,
       signature: row.signature,
       createdAt: row.createdAt.toISOString(),
+    })),
+    disputes: disputeRows.map((row) => ({
+      id: row.id,
+      reporter: row.reporter as Address,
+      reason: row.reason,
+      evidence: row.evidence,
+      message: row.message,
+      signature: row.signature,
+      status: row.status,
+      openedAt: row.openedAt.toISOString(),
     })),
   };
 }

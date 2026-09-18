@@ -180,12 +180,25 @@ export const disputes = pgTable(
     targetAddress: char("target_address", { length: 42 })
       .notNull()
       .references(() => wallets.address),
+    // Spec 09: satu dispute punya satu reporter. Report != bukti wrongdoing.
+    reporterAddress: char("reporter_address", { length: 42 })
+      .notNull()
+      .references(() => wallets.address),
+    reason: text("reason").notNull(),
+    evidence: text("evidence").notNull(),
+    // Payload kanonik + tanda tangan reporter, agar report bisa diverifikasi ulang.
+    message: text("message").notNull(),
+    signature: char("signature", { length: 132 }).notNull(),
     status: varchar("status", { length: 16 }).notNull().default("open"),
     openedAt: timestamptz("opened_at").notNull().defaultNow(),
     resolvedAt: timestamptz("resolved_at"),
     resolutionNote: text("resolution_note"),
   },
-  (t) => [index("idx_disputes_target").on(t.targetAddress, t.status)],
+  (t) => [
+    index("idx_disputes_target").on(t.targetAddress, t.status),
+    // Cegah satu reporter membanjiri target yang sama dengan dispute berulang.
+    unique("disputes_reporter_target").on(t.reporterAddress, t.targetAddress),
+  ],
 );
 
 export const disputeReports = pgTable(
