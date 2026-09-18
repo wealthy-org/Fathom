@@ -1,6 +1,211 @@
 "use client";
 
-import { useEffect } from "react";
+import Image from "next/image";
+import { useLayoutEffect, useState } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ConnectButton } from "@/components/connect-button";
+
+const ICON_PATHS: Record<string, React.ReactNode> = {
+  search: (
+    <>
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </>
+  ),
+  eyeOff: (
+    <>
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+      <path d="m2 2 20 20" />
+      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+    </>
+  ),
+  layers: (
+    <>
+      <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
+      <path d="m22 12.08-8.58 3.91a2 2 0 0 1-1.66 0L2 12.08" />
+      <path d="m22 17.08-8.58 3.91a2 2 0 0 1-1.66 0L2 17.08" />
+    </>
+  ),
+  gauge: (
+    <>
+      <path d="m12 14 4-4" />
+      <path d="M3.34 19a10 10 0 1 1 17.32 0" />
+    </>
+  ),
+  chart: (
+    <>
+      <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+      <path d="M7 16v-3" />
+      <path d="M11 16V8" />
+      <path d="M15 16v-5" />
+      <path d="M19 16V5" />
+    </>
+  ),
+  shieldCheck: (
+    <>
+      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+      <path d="m9 12 2 2 4-4" />
+    </>
+  ),
+  compass: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36z" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </>
+  ),
+  coins: (
+    <>
+      <circle cx="8" cy="8" r="6" />
+      <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
+      <path d="M7 6h1v4" />
+      <path d="m16.71 13.88.7.71-2.82 2.82" />
+    </>
+  ),
+  users: (
+    <>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </>
+  ),
+  boxes: (
+    <>
+      <path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3z" />
+      <path d="m7 16.5-4.74-2.85" />
+      <path d="m7 16.5 5-3" />
+      <path d="M7 16.5v5.17" />
+      <path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5z" />
+      <path d="m17 16.5-5-3" />
+      <path d="m17 16.5 4.74-2.85" />
+      <path d="M17 16.5v5.17" />
+      <path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0z" />
+      <path d="M12 8 7.26 5.15" />
+      <path d="m12 8 4.74-2.85" />
+      <path d="M12 13.5V8" />
+    </>
+  ),
+  network: (
+    <>
+      <rect x="16" y="16" width="6" height="6" rx="1" />
+      <rect x="2" y="16" width="6" height="6" rx="1" />
+      <rect x="9" y="2" width="6" height="6" rx="1" />
+      <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" />
+      <path d="M12 12V8" />
+    </>
+  ),
+  alert: (
+    <>
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+    </>
+  ),
+  repeat: (
+    <>
+      <path d="m17 2 4 4-4 4" />
+      <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+      <path d="m7 22-4-4 4-4" />
+      <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+    </>
+  ),
+  fileCheck: (
+    <>
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z" />
+      <path d="M14 2v5h6" />
+      <path d="m9 15 2 2 4-4" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect width="18" height="11" x="3" y="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </>
+  ),
+  store: (
+    <>
+      <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+      <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" />
+      <path d="M2 7h20" />
+      <path d="M22 7v3a2 2 0 0 1-2 2 2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7" />
+    </>
+  ),
+  rocket: (
+    <>
+      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
+      <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+      <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
+      <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
+    </>
+  ),
+  trendingUp: (
+    <>
+      <path d="M16 7h6v6" />
+      <path d="m22 7-8.5 8.5-5-5L2 17" />
+    </>
+  ),
+  briefcase: (
+    <>
+      <path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+      <rect width="20" height="14" x="2" y="6" rx="2" />
+    </>
+  ),
+};
+
+type IconName = keyof typeof ICON_PATHS;
+
+function Icon({
+  name,
+  className = "h-5 w-5",
+}: {
+  name: IconName;
+  className?: string;
+}) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {ICON_PATHS[name]}
+    </svg>
+  );
+}
+
+function IconBox({
+  name,
+  tone = "accent",
+}: {
+  name: IconName;
+  tone?: "accent" | "purple" | "danger";
+}) {
+  const tones = {
+    accent: "border-accent/10 bg-accent/5 text-accent",
+    purple: "border-purple/20 bg-purple/5 text-purple",
+    danger: "border-red-400/20 bg-red-400/5 text-red-400",
+  };
+  return (
+    <div
+      className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${tones[tone]}`}
+    >
+      <Icon name={name} />
+    </div>
+  );
+}
 
 function Arrow({ className = "" }: { className?: string }) {
   return (
@@ -30,9 +235,17 @@ function Kick({ children }: { children: string }) {
   );
 }
 
-function Head({ kick, title, sub }: { kick: string; title: React.ReactNode; sub?: string }) {
+function Head({
+  kick,
+  title,
+  sub,
+}: {
+  kick: string;
+  title: React.ReactNode;
+  sub?: string;
+}) {
   return (
-    <div className="reveal max-w-2xl">
+    <div className="animate-title max-w-2xl">
       <Kick>{kick}</Kick>
       <h2 className="mt-4 font-display text-4xl font-medium tracking-tight sm:text-5xl">
         {title}
@@ -42,72 +255,232 @@ function Head({ kick, title, sub }: { kick: string; title: React.ReactNode; sub?
   );
 }
 
-const SCORE_COMPONENTS: Array<[string, string, boolean]> = [
-  ["On-chain baseline", "Activity signals every wallet already has.", true],
-  ["Vouches", "Stake-backed endorsements from other wallets.", false],
-  ["Reviews", "Lightweight ratings, no stake required.", true],
-  ["Invite activity", "Credit for growing the network responsibly.", false],
-  ["Verified role badges", "Community-attested roles and skills.", true],
-  ["Dispute status", "Active disputes halve the score until resolved.", false],
+function ExampleTag() {
+  return (
+    <span className="rounded border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-slate400">
+      Example
+    </span>
+  );
+}
+
+const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+
+const NAV_LINKS: Array<[string, string]> = [
+  ["How It Works", "#how"],
+  ["Proof", "#proof"],
+  ["Trust Graph", "#trust-graph"],
+  ["For Builders", "#builders"],
 ];
 
-const HISTORY = [420, 510, 590, 640, 782];
-const HISTORY_EVENTS: Array<[string, string]> = [
-  ["420", "First vouches received"],
-  ["510", "Builder badge verified by community"],
-  ["590", "12 new reviews, avg 4.6"],
-  ["640", "Dispute opened — score frozen"],
-  ["782", "Dispute resolved — score restored + vouch surge"],
-];
+function Logo() {
+  return (
+    <a href="#" className="flex items-center gap-2.5">
+      <Image
+        src="/logo-no-bg.png"
+        alt="Fathom"
+        width={40}
+        height={40}
+        className="h-10 w-10"
+        priority
+      />
+      <span className="font-display text-lg font-semibold tracking-tight">
+        Fathom
+      </span>
+    </a>
+  );
+}
+
+function SearchWalletForm() {
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  function submit() {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setError("Enter a wallet address.");
+      return;
+    }
+    if (!ADDRESS_RE.test(trimmed)) {
+      setError("That doesn't look like a valid 0x address.");
+      return;
+    }
+    setError(null);
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+      className="w-full"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setError(null);
+          }}
+          placeholder="0x7A3…91F2"
+          spellCheck={false}
+          autoComplete="off"
+          className="h-12 flex-1 rounded-full border border-white/15 bg-white/[0.03] px-5 font-mono text-sm text-white placeholder:text-white/30 focus:border-accent/60 focus:outline-none"
+        />
+        <button
+          type="submit"
+          className="group relative inline-flex overflow-hidden rounded-full bg-white p-[1px] transition duration-300 hover:scale-105"
+        >
+          <span className="absolute inset-0 bg-gradient-to-r from-accent via-purple to-accent opacity-0 transition duration-300 group-hover:opacity-100" />
+          <span className="relative flex h-12 items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-semibold text-black">
+            Search a Wallet
+            <Arrow className="transition-transform duration-300 group-hover:translate-x-1" />
+          </span>
+        </button>
+      </div>
+      {error && (
+        <p className="mt-2 font-mono text-xs text-red-400">{error}</p>
+      )}
+      <p className="mt-3 text-xs text-slate400">
+        No account required. Profile lookup ships in Fase 01.
+      </p>
+    </form>
+  );
+}
+
+function PrimaryLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      className="group relative inline-flex overflow-hidden rounded-full bg-white p-[1px] transition duration-300 hover:scale-105"
+    >
+      <span className="absolute inset-0 bg-gradient-to-r from-accent via-purple to-accent opacity-0 transition duration-300 group-hover:opacity-100" />
+      <span className="relative flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-black">
+        {children}
+        <Arrow className="transition-transform duration-300 group-hover:translate-x-1" />
+      </span>
+    </a>
+  );
+}
+
+function StatStrip() {
+  const stats: Array<[string, string]> = [
+    ["Evidence before score", "On-chain foundation"],
+    ["Pseudonymous by design", "Wallet-based identity"],
+    ["Human context", "Structured attestations"],
+    ["Open to inspect", "Every proof verifiable"],
+  ];
+  return (
+    <section className="border-y border-white/5 bg-black/20 backdrop-blur-sm">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-y-6 px-5 py-8 sm:px-6 lg:px-8">
+        {stats.map(([label, value], i) => (
+          <div key={label} className="flex items-center">
+            <div>
+              <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
+                {label}
+              </div>
+              <div className="mt-1 font-display text-2xl font-medium">
+                {value}
+              </div>
+            </div>
+            {i < stats.length - 1 && (
+              <div className="mx-6 hidden h-10 w-px bg-white/10 sm:block" />
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
-  useEffect(() => {
-    const els = document.querySelectorAll(".reveal");
-    const io = new IntersectionObserver(
-      (entries) =>
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            e.target.classList.add("reveal-visible");
-            io.unobserve(e.target);
-          }
-        }),
-      { threshold: 0.15 },
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, []);
+  useLayoutEffect(() => {
+    gsap.registerPlugin(ScrollTrigger);
 
-  const pts = HISTORY.map((v, i) => {
-    const x = 20 + (i * 560) / (HISTORY.length - 1);
-    const y = 150 - ((v - 350) / (800 - 350)) * 130;
-    return `${x},${y}`;
-  }).join(" ");
+    const ctx = gsap.context(() => {
+      // Title stagger — eyebrow / headline / copy masuk berurutan.
+      gsap.utils.toArray<HTMLElement>(".animate-title").forEach((el, i) => {
+        gsap.fromTo(
+          el,
+          { y: 50, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 1.2,
+            delay: i * 0.08,
+            ease: "power3.out",
+          },
+        );
+      });
+
+      // Card scroll reveal.
+      gsap.utils.toArray<HTMLElement>(".card").forEach((card) => {
+        gsap.fromTo(
+          card,
+          { y: 30, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.8,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: card,
+              start: "top 85%",
+              toggleActions: "play none none reverse",
+            },
+          },
+        );
+      });
+
+      // Ambient parallax glow.
+      gsap.to(".glow-top-left", {
+        x: 100,
+        y: 100,
+        scrollTrigger: {
+          trigger: "body",
+          start: "top top",
+          end: "bottom bottom",
+          scrub: 2,
+        },
+      });
+      gsap.to(".glow-bottom-right", {
+        x: -100,
+        y: -100,
+        scrollTrigger: {
+          trigger: "body",
+          start: "top top",
+          end: "bottom bottom",
+          scrub: 2,
+        },
+      });
+    });
+
+    return () => ctx.revert();
+  }, []);
 
   return (
     <div className="bg-void font-sans text-white">
       <div className="bg-stars" />
       <div className="bg-grid" />
-      <div className="glow-spot animate-blob" style={{ top: -220, left: -220 }} />
-      <div className="glow-spot animate-blob" style={{ right: -220, bottom: -200, animationDelay: "-8s" }} />
+      <div className="glow-spot glow-top-left animate-blob" />
+      <div
+        className="glow-spot glow-bottom-right animate-blob"
+        style={{ animationDelay: "-8s" }}
+      />
 
       {/* 1. NAVBAR */}
       <nav className="fixed left-0 right-0 top-0 z-50 border-b border-white/5 bg-black/20 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-6 lg:px-8">
-          <a href="#" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-accent/20 bg-accent/5 font-display text-lg font-semibold text-accent shadow-[0_0_20px_-10px_rgba(20,241,149,0.5)]">
-              F
-            </div>
-            <div className="flex items-baseline">
-              <span className="font-display text-lg font-semibold tracking-tight">Fathom</span>
-            </div>
-          </a>
+          <Logo />
           <div className="hidden items-center gap-1 rounded-full border border-white/5 bg-white/[0.02] p-1 backdrop-blur-md md:flex">
-            {[
-              ["How It Works", "#how"],
-              ["Reputation", "#reputation"],
-              ["Use Cases", "#use-cases"],
-              ["Docs", "#"],
-            ].map(([t, href]) => (
+            {NAV_LINKS.map(([t, href]) => (
               <a
                 key={t}
                 href={href}
@@ -117,15 +490,15 @@ export default function Home() {
               </a>
             ))}
           </div>
-          <a
-            href="#reputation"
-            className="group relative overflow-hidden rounded-full bg-white p-[1px] transition duration-300 hover:scale-105"
-          >
-            <span className="absolute inset-0 bg-gradient-to-r from-accent via-purple to-accent opacity-0 transition duration-300 group-hover:opacity-100" />
-            <span className="relative flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-black">
-              Connect Wallet
-            </span>
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href="#check"
+              className="hidden rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-white transition hover:border-white/40 sm:block"
+            >
+              Search Wallet
+            </a>
+            <ConnectButton connectLabel="Connect Wallet" />
+          </div>
         </div>
       </nav>
 
@@ -135,579 +508,783 @@ export default function Home() {
           <div className="mx-auto max-w-7xl">
             <div className="grid items-center gap-16 lg:grid-cols-[1.05fr_.95fr]">
               <div>
-                <div className="reveal mb-7 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-3 py-1.5">
+                <div className="animate-title mb-7 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-3 py-1.5">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
                   <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
                     On-chain trust layer
                   </span>
                 </div>
-                <h1 className="reveal max-w-4xl font-display text-6xl font-medium leading-[0.95] tracking-tighter sm:text-7xl md:text-8xl">
-                  Trust without
+                <h1 className="animate-title max-w-4xl font-display text-6xl font-medium leading-[0.95] tracking-tighter sm:text-7xl md:text-8xl">
+                  Know the wallet
                   <span className="block bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent">
-                    identity.
+                    before you trust it.
                   </span>
                 </h1>
-                <p className="reveal mt-7 max-w-xl text-base leading-7 text-slate400 sm:text-lg">
-                  Fathom turns on-chain behavior into verifiable credibility,
-                  allowing wallets to build reputation without revealing their
-                  real-world identity.
+                <p className="animate-title mt-7 max-w-xl text-base leading-7 text-slate400 sm:text-lg">
+                  Fathom turns wallet history, economic relationships,
+                  behavioral signals, and attestations into verifiable trust
+                  evidence.
                 </p>
-                <div className="reveal mt-9 flex flex-col gap-3 sm:flex-row">
+                <p className="animate-title mt-4 font-mono text-sm text-accent">
+                  Don&apos;t trust the profile. Verify the wallet.
+                </p>
+                <div className="animate-title mt-9" id="check">
+                  <SearchWalletForm />
+                </div>
+                <div className="animate-title mt-6">
                   <a
-                    href="#reputation"
-                    className="solana-button group flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-black transition duration-300 hover:scale-105"
+                    href="#profile"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-white/70 transition hover:text-white"
                   >
-                    Explore Fathom
-                    <Arrow className="transition duration-300 group-hover:translate-x-1" />
-                  </a>
-                  <a
-                    href="#how"
-                    className="flex items-center justify-center rounded-full border border-white/10 bg-white/[0.02] px-6 py-3.5 text-sm font-medium text-slate400 transition duration-300 hover:border-accent/20 hover:bg-accent/5 hover:text-white"
-                  >
-                    How It Works
+                    Explore a Reputation
+                    <Arrow />
                   </a>
                 </div>
               </div>
 
-              {/* hero visual: example wallet profile terminal */}
-              <div className="reveal shine-border overflow-hidden rounded-2xl border border-white/10 bg-terminal shadow-[0_30px_100px_-40px_rgba(20,241,149,0.2)]">
-                <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full border border-red-400/50 bg-red-500/20" />
-                    <span className="h-2.5 w-2.5 rounded-full border border-yellow-400/50 bg-yellow-500/20" />
-                    <span className="h-2.5 w-2.5 rounded-full border border-green-400/50 bg-green-500/20" />
+              {/* Wallet Reputation Preview */}
+              <div className="card">
+                <div className="glass shine-border rounded-3xl border border-white/5 p-7 sm:p-9">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-sm text-white">
+                      0x7A3…91F2
+                    </span>
+                    <ExampleTag />
                   </div>
-                  <div className="font-mono text-[9px] text-slate400">fathom://profile</div>
-                  <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-accent">live</div>
-                </div>
-                <div className="p-5 sm:p-6">
-                  <div className="terminal-line text-slate400">
-                    <span className="text-accent">$</span> fathom score 0x71…4a3f
+                  <div className="mt-6 grid grid-cols-2 gap-4">
+                    {[
+                      ["Wallet Age", "3y 8m"],
+                      ["Transactions", "1,842"],
+                      ["Counterparties", "126"],
+                      ["Repeat Relationships", "34"],
+                      ["Protocol History", "18 protocols"],
+                    ].map(([k, v]) => (
+                      <div key={k}>
+                        <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
+                          {k}
+                        </div>
+                        <div className="mt-1 font-display text-xl font-medium">
+                          {v}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="terminal-line mt-1 text-slate400">
-                    <span className="text-purple">›</span> fetching vouches, reviews, attestations…
+                  <div className="my-6 h-px bg-white/10" />
+                  <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-accent">
+                    Proof of reputation
                   </div>
-                  <div className="terminal-line mt-1 text-slate400">
-                    <span className="text-accent">✓</span> score computed from on-chain signals
-                  </div>
-                  <div className="mt-5 rounded-xl border border-accent/20 bg-accent/5 p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-accent">
-                        Credibility Score
-                      </span>
-                      <span className="font-mono text-[9px] text-slate400">▲ +142</span>
-                    </div>
-                    <div className="secret-reveal mt-3 select-none font-display text-5xl font-medium tracking-tight text-white">
-                      782
-                    </div>
-                  </div>
-                  <div className="mt-5 flex items-center justify-between border-t border-white/5 pt-4">
-                    <span className="font-mono text-[9px] text-slate400">VOUCHES</span>
-                    <span className="font-mono text-[10px] text-white">18</span>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="font-mono text-[9px] text-slate400">REVIEWS</span>
-                    <span className="font-mono text-[10px] text-white">32 · avg 4.6</span>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="font-mono text-[9px] text-slate400">BADGES</span>
-                    <span className="font-mono text-[10px] text-accent">Builder ✓ · Reviewer ✓</span>
-                  </div>
+                  <ul className="mt-3 space-y-2 text-sm text-slate400">
+                    {[
+                      "Long-term wallet activity",
+                      "34 repeat counterparties",
+                      "Consistent protocol usage",
+                      "Verified attestations",
+                    ].map((t) => (
+                      <li key={t} className="flex items-center gap-2">
+                        <span className="text-accent">✓</span>
+                        {t}
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href="#proof"
+                    className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-accent"
+                  >
+                    View Evidence <Arrow />
+                  </a>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* STATS (replaces marquee) */}
-        <section className="border-y border-white/5 bg-black/20 backdrop-blur-sm">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-6 px-5 py-8 sm:px-6 lg:px-8">
-            <div>
-              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">Wallets scored</span>
-              <div className="mt-1 font-display text-2xl font-medium">1,248 <span className="text-sm text-slate400">demo</span></div>
-            </div>
-            <div className="my-2 hidden h-10 w-px bg-white/10 sm:block" />
-            <div>
-              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">Vouches recorded</span>
-              <div className="mt-1 font-display text-2xl font-medium">312 <span className="text-sm text-slate400">demo</span></div>
-            </div>
-            <div className="my-2 hidden h-10 w-px bg-white/10 sm:block" />
-            <div>
-              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">Score model</span>
-              <div className="mt-1 font-display text-2xl font-medium">6 <span className="text-accent">signals</span></div>
-            </div>
-          </div>
-        </section>
+        {/* 2b. STAT STRIP */}
+        <StatStrip />
 
-        {/* 3. CORE PHILOSOPHY */}
+        {/* 3. PROBLEM */}
         <section className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
           <div className="mx-auto max-w-7xl">
             <Head
-              kick="Core philosophy"
-              title={<>The wallet is the identity. <span className="text-slate400">The behavior is the reputation.</span></>}
-              sub="Fathom builds credibility from what a wallet does on-chain, rather than who controls it in the real world."
+              kick="The problem"
+              title={
+                <>
+                  A wallet address is easy to see.
+                  <br />
+                  Its history isn&apos;t.
+                </>
+              }
+              sub="In pseudonymous economies, you often interact with wallets you don't know. A profile can tell you what someone claims. A transaction history can show you what they actually did."
             />
-            <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {["No real name required", "No social account required", "No public profile required", "Wallet-based identity"].map((t, i) => (
-                <div key={t} className="reveal glass rounded-3xl border border-white/5 p-7">
-                  <span className="font-mono text-[9px] text-slate400">0{i + 1}</span>
-                  <p className="mt-8 font-display text-lg font-medium leading-7">
-                    <span className="mr-2 text-accent">✓</span>{t}
-                  </p>
-                </div>
+            <div className="mt-14 grid gap-4 md:grid-cols-3">
+              {[
+                [
+                  "eyeOff",
+                  "Unknown Counterparties",
+                  "You don't know who you've interacted with or whether the relationship has any history.",
+                ],
+                [
+                  "layers",
+                  "Fragmented Evidence",
+                  "Relevant wallet activity is scattered across transactions, protocols, and counterparties.",
+                ],
+                [
+                  "gauge",
+                  "Reputation Without Context",
+                  "A single score can hide the evidence behind it.",
+                ],
+              ].map(([icon, t, d]) => (
+                <article
+                  key={t}
+                  className="card glass flex flex-col rounded-3xl border border-white/5 p-7 sm:p-9"
+                >
+                  <IconBox name={icon as IconName} />
+                  <h3 className="mt-6 font-display text-lg font-medium">{t}</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate400">{d}</p>
+                </article>
               ))}
             </div>
+            <p className="card mt-10 font-display text-2xl tracking-tight">
+              Fathom connects the evidence.
+            </p>
           </div>
         </section>
 
         {/* 4. HOW IT WORKS */}
-        <section id="how" className="border-y border-white/5 bg-black/10 px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
-          <div className="mx-auto max-w-5xl">
-            <div className="reveal text-center">
-              <Kick>Protocol flow</Kick>
-              <h2 className="mt-4 font-display text-4xl font-medium tracking-tight sm:text-5xl">
-                Trust is built through behavior.
-              </h2>
-            </div>
-            <div className="relative mt-20">
-              <div className="process-line absolute bottom-0 left-1/2 top-0 hidden w-px -translate-x-1/2 md:block" />
+        <section id="how" className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
+          <div className="mx-auto max-w-7xl">
+            <Head
+              kick="From wallet to trust"
+              title={
+                <>
+                  Understand the wallet.
+                  <br />
+                  Not just the profile.
+                </>
+              }
+            />
+            <div className="mt-14 grid gap-4 md:grid-cols-4">
               {[
-                ["Step 01", "Connect", "Connect your wallet and prove ownership through a signed message.", true],
-                ["Step 02", "Build", "Build credibility through vouches, reviews, role attestations, and on-chain activity.", false],
-                ["Step 03", "Prove", "Use your reputation to establish trust with other wallets, communities, and collaborators.", true],
-              ].map(([k, title, body, isAccent], i) => (
-                <div key={k as string} className={`reveal group relative grid items-center gap-8 md:grid-cols-2 ${i > 0 ? "mt-20 md:mt-28" : ""}`}>
-                  {i % 2 === 1 && <div className="hidden md:block" />}
-                  <div className={i % 2 === 0 ? "text-left md:pr-20 md:text-right" : "text-left md:pl-20"}>
-                    <span className={`font-mono text-[9px] uppercase tracking-[0.2em] ${isAccent ? "text-accent" : "text-purple"}`}>
-                      {k}
-                    </span>
-                    <h3 className="mt-3 font-display text-2xl font-medium">{title}</h3>
-                    <p className="mt-3 text-sm leading-6 text-slate400">{body}</p>
-                  </div>
-                  <div
-                    className={`absolute left-1/2 top-1/2 hidden h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border bg-void md:flex ${isAccent ? "border-accent/20 group-hover:shadow-[0_0_30px_-8px_rgba(20,241,149,0.8)]" : "border-purple/20 group-hover:shadow-[0_0_30px_-8px_rgba(153,69,255,0.8)]"}`}
-                  >
-                    <span className={`h-2 w-2 rounded-full ${isAccent ? "bg-accent" : "bg-purple"}`} />
-                  </div>
-                  {i % 2 === 0 && <div className="hidden md:block" />}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* 5. CREDIBILITY SCORE */}
-        <section id="reputation" className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
-          <div className="mx-auto max-w-7xl">
-            <Head
-              kick="Credibility score"
-              title={<>A reputation <span className="text-slate400">you can verify.</span></>}
-              sub="Your credibility score is derived from underlying signals rather than being a manually assigned number."
-            />
-            <div className="mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {SCORE_COMPONENTS.map(([t, b, isAccent], i) => (
-                <article key={t} className="reveal glass rounded-3xl border border-white/5 p-7 sm:p-9">
-                  <div className="flex items-start justify-between">
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border font-mono text-xs ${isAccent ? "border-accent/10 bg-accent/5 text-accent" : "border-purple/20 bg-purple/5 text-purple"}`}>
-                      0{i + 1}
-                    </div>
-                    <span className="font-mono text-[9px] text-slate400">0{i + 1}</span>
-                  </div>
-                  <h3 className="mt-12 font-display text-2xl font-medium">{t}</h3>
-                  <p className="mt-4 text-sm leading-7 text-slate400">{b}</p>
-                </article>
-              ))}
-            </div>
-            <p className="reveal mt-14 text-center font-display text-2xl font-medium tracking-tight sm:text-3xl">
-              Your score is derived from behavior, <span className="text-accent">not popularity.</span>
-            </p>
-          </div>
-        </section>
-
-        {/* 6. VOUCH */}
-        <section className="border-y border-white/5 bg-black/10 px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
-          <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-2">
-            <div className="reveal">
-              <Kick>Vouch</Kick>
-              <h2 className="mt-4 max-w-xl font-display text-4xl font-medium tracking-tight sm:text-5xl">
-                Put something <span className="text-slate400">behind your trust.</span>
-              </h2>
-              <p className="mt-6 max-w-xl text-sm leading-7 text-slate400">
-                A vouch allows one wallet to endorse another wallet while
-                staking tokens behind that endorsement.
-              </p>
-              <div className="mt-10 space-y-7">
-                {[
-                  ["Vouch", "A wallet expresses trust in another wallet.", true],
-                  ["Stake", "The endorsement carries an economic commitment.", false],
-                  ["Reputation", "The vouch contributes to the recipient's credibility.", true],
-                ].map(([t, b, isAccent]) => (
-                  <div key={t as string} className={`border-l-2 pl-5 ${isAccent ? "border-accent" : "border-purple"}`}>
-                    <h3 className="font-display text-xl font-medium">{t}</h3>
-                    <p className="mt-2 text-sm leading-7 text-slate400">{b}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="reveal shine-border flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-terminal p-8">
-              {["Wallet A", "Stake", "Vouch", "Wallet B", "Credibility"].map((t, i, arr) => (
-                <div key={t} className="flex w-full max-w-xs flex-col items-center">
-                  <div className={`w-full rounded-lg border px-6 py-3.5 text-center font-mono text-[11px] uppercase tracking-[0.2em] ${i === arr.length - 1 ? "border-accent/40 bg-accent/10 text-accent" : "border-white/10 text-slate400"}`}>
-                    {t}
-                  </div>
-                  {i < arr.length - 1 && <div className="py-1 font-mono text-xs text-accent">↓</div>}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* 7. REVIEWS & ATTESTATION */}
-        <section className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
-          <div className="mx-auto max-w-7xl">
-            <Head
-              kick="Reviews + attestation"
-              title={<>Reputation is built <span className="text-slate400">by other wallets.</span></>}
-            />
-            <div className="mt-14 grid gap-4 md:grid-cols-2">
-              <article className="reveal glass rounded-3xl border border-white/5 p-7 sm:p-9">
-                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-accent">Reviews</span>
-                <p className="mt-6 max-w-lg text-sm leading-7 text-slate400">
-                  Wallets can rate and leave short feedback for other wallets
-                  without staking tokens — a lightweight way to record everyday
-                  trust.
-                </p>
-                <div className="mt-9 rounded-2xl border border-white/5 bg-[#060910] p-5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-slate400">Review submitted</span>
-                    <span className="font-mono text-[11px] text-accent">★★★★★</span>
-                  </div>
-                  <div className="mt-4 font-mono text-[11px] leading-6 text-slate400">
-                    “Fast settlement, no drama. Would trade again.”
-                  </div>
-                </div>
-              </article>
-              <article className="reveal glass rounded-3xl border border-white/5 p-7 sm:p-9">
-                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-purple">Role / skill badges</span>
-                <p className="mt-6 max-w-lg text-sm leading-7 text-slate400">
-                  Wallets declare roles — Builder, Reviewer, Community Mod —
-                  and other qualified wallets attest to them until the badge is
-                  community-verified.
-                </p>
-                <div className="mt-9 flex flex-wrap gap-2">
-                  {["Builder ✓", "Reviewer ✓", "Community Mod"].map((b) => (
-                    <span key={b} className="rounded-full border border-white/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.15em] text-slate400">
-                      {b}
-                    </span>
-                  ))}
-                </div>
-              </article>
-            </div>
-            <p className="reveal mt-14 text-center font-display text-2xl font-medium tracking-tight sm:text-3xl">
-              Your reputation is not what you claim.<br />
-              <span className="text-accent">It&apos;s what others can verify.</span>
-            </p>
-          </div>
-        </section>
-
-        {/* 8. PRIVACY */}
-        <section className="border-y border-white/5 bg-black/10 px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
-          <div className="mx-auto max-w-7xl">
-            <div className="reveal grid gap-12 lg:grid-cols-2">
-              <div>
-                <Kick>Privacy</Kick>
-                <h2 className="mt-4 max-w-xl font-display text-4xl font-medium tracking-tight sm:text-5xl">
-                  Pseudonymous <span className="text-slate400">by design.</span>
-                </h2>
-                <p className="mt-6 max-w-xl text-sm leading-7 text-slate400">
-                  You don&apos;t need to reveal your real-world identity to
-                  build a reputation. The protocol exposes proofs and behavior,
-                  not private information.
-                </p>
-              </div>
-              <div className="rounded-3xl border border-red-500/20 bg-red-500/[0.02] p-7 sm:p-9">
-                <h3 className="font-display text-xl font-medium">Not required — ever</h3>
-                <ul className="mt-5 space-y-3 text-sm leading-7 text-slate400">
-                  {["Real name", "Profile photo", "Email", "Social accounts", "Phone number"].map((t) => (
-                    <li key={t}><span className="mr-3 text-red-400">✕</span><s>{t}</s></li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <div className="reveal mt-10 rounded-3xl border border-accent/20 bg-accent/5 p-7 sm:p-9">
-              <h3 className="font-display text-xl font-medium text-accent">Always visible</h3>
-              <div className="mt-4 flex flex-wrap gap-x-8 gap-y-2 font-mono text-[11px] uppercase tracking-[0.15em] text-slate400">
-                {["Wallet address", "On-chain behavior", "Vouches", "Reviews", "Community attestations"].map((t) => (
-                  <span key={t}><span className="mr-2 text-accent">✓</span>{t}</span>
-                ))}
-              </div>
-            </div>
-            <p className="reveal mt-14 text-center font-display text-2xl font-medium tracking-tight sm:text-3xl">
-              Prove what you&apos;ve done.<br />
-              <span className="text-slate400">Keep who you are private.</span>
-            </p>
-          </div>
-        </section>
-
-        {/* 9. USE CASES */}
-        <section id="use-cases" className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
-          <div className="mx-auto max-w-7xl">
-            <Head
-              kick="Use cases"
-              title={<>Trust, wherever <span className="text-slate400">wallets interact.</span></>}
-            />
-            <div className="mt-14 grid gap-4 md:grid-cols-3">
-              {[
-                ["01 / OTC", "Know who you're dealing with.", "Check the credibility of a counterparty before an anonymous wallet-to-wallet transaction.", true],
-                ["02 / Communities", "Build reputation before granting access.", "Evaluate wallet history, credibility, and verified roles before allowing access to a community or DAO.", false],
-                ["03 / Collaboration", "Find people by reputation, not popularity.", "Discover builders, reviewers, and contributors through verifiable wallet reputation.", true],
-              ].map(([k, t, b, isAccent]) => (
-                <article key={k as string} className="reveal glass rounded-3xl border border-white/5 p-7 sm:p-9">
-                  <span className={`font-mono text-[9px] uppercase tracking-[0.2em] ${isAccent ? "text-accent" : "text-purple"}`}>{k}</span>
-                  <h3 className="mt-12 font-display text-2xl font-medium">{t}</h3>
-                  <p className="mt-4 text-sm leading-7 text-slate400">{b}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* 10. REPUTATION → ACCESS */}
-        <section className="border-y border-white/5 bg-black/10 px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
-          <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-2">
-            <div className="reveal">
-              <Kick>Score-gated access</Kick>
-              <h2 className="mt-4 max-w-xl font-display text-4xl font-medium tracking-tight sm:text-5xl">
-                Reputation <span className="text-slate400">should unlock something.</span>
-              </h2>
-              <p className="mt-6 max-w-xl text-sm leading-7 text-slate400">
-                Fathom allows applications and communities to use credibility as
-                an access condition.
-              </p>
-              <p className="mt-8 font-display text-xl font-medium">
-                Turn reputation <span className="text-accent">into permission.</span>
-              </p>
-            </div>
-            <pre className="reveal shine-border overflow-x-auto rounded-2xl border border-white/10 bg-terminal p-6 font-mono text-xs leading-8 text-slate400 sm:p-8">
-{`Community Access
-
-Minimum Credibility
-500
-
-Wallet
-782 ✓
-
-Access Granted`}
-            </pre>
-          </div>
-        </section>
-
-        {/* 11. HISTORY */}
-        <section className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
-          <div className="mx-auto max-w-7xl">
-            <Head
-              kick="Reputation history"
-              title={<>Reputation <span className="text-slate400">isn&apos;t static.</span></>}
-              sub="Track how a wallet's credibility changes over time."
-            />
-            <div className="reveal shine-border mt-14 overflow-hidden rounded-2xl border border-white/10 bg-terminal p-6 sm:p-8">
-              <div className="font-mono text-sm tracking-[0.1em] text-slate400">
-                420 <span className="text-accent">→</span> 510 <span className="text-accent">→</span> 590 <span className="text-accent">→</span> 640 <span className="text-accent">→</span> <span className="text-accent">782</span>
-              </div>
-              <svg viewBox="0 0 600 160" className="mt-6 w-full" aria-hidden="true">
-                <polyline points={pts} fill="none" stroke="#14f195" strokeWidth="2" />
-                {HISTORY.map((v, i) => {
-                  const x = 20 + (i * 560) / (HISTORY.length - 1);
-                  const y = 150 - ((v - 350) / (800 - 350)) * 130;
-                  return <circle key={v} cx={x} cy={y} r="4" fill="#14f195" />;
-                })}
-              </svg>
-              <ul className="mt-8 space-y-3">
-                {HISTORY_EVENTS.map(([score, ev]) => (
-                  <li key={score} className="flex gap-6 border-b border-white/5 pb-3 font-mono text-[11px]">
-                    <span className="w-12 shrink-0 text-accent">{score}</span>
-                    <span className="text-slate400">{ev}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        {/* 12. SHARE CARD */}
-        <section className="border-y border-white/5 bg-black/10 px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
-          <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
-            <div className="reveal">
-              <Kick>Shareable reputation</Kick>
-              <h2 className="mt-4 max-w-xl font-display text-4xl font-medium tracking-tight sm:text-5xl">
-                Take your reputation <span className="text-slate400">with you.</span>
-              </h2>
-              <p className="mt-6 max-w-xl text-sm leading-7 text-slate400">
-                Generate a shareable reputation card that lets others see your
-                credibility without requiring a traditional social profile.
-              </p>
-              <a
-                href="#share-example"
-                className="mt-8 inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.02] px-6 py-3.5 text-sm font-medium text-slate400 transition duration-300 hover:border-accent/20 hover:bg-accent/5 hover:text-white"
-              >
-                View Example <Arrow />
-              </a>
-            </div>
-            <div id="share-example" className="reveal rounded-2xl border border-accent/40 bg-terminal p-8 shadow-[0_30px_100px_-40px_rgba(20,241,149,0.25)]">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-3 font-display text-sm font-semibold">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent/20 bg-accent/5 text-accent">F</span>
-                  Fathom
-                </span>
-                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-slate400">Share card</span>
-              </div>
-              <div className="mt-8 font-mono text-xs text-slate400">0x71…4a3f</div>
-              <div className="mt-2 font-display text-7xl font-medium tracking-tight">782</div>
-              <div className="mt-6 flex flex-wrap gap-2">
-                {["Builder ✓", "Reviewer ✓"].map((b) => (
-                  <span key={b} className="rounded-full border border-accent/30 px-3 py-1 font-mono text-[9px] uppercase tracking-[0.15em] text-accent">
-                    {b}
+                ["search", "01", "Search", "Enter any wallet address. No account required."],
+                [
+                  "chart",
+                  "02",
+                  "Analyze",
+                  "Fathom analyzes wallet history, behavioral signals, economic activity, and relationships.",
+                ],
+                [
+                  "shieldCheck",
+                  "03",
+                  "Verify",
+                  "Explore the underlying proofs and evidence behind the reputation.",
+                ],
+                [
+                  "compass",
+                  "04",
+                  "Decide",
+                  "Use the evidence to make your own trust decision.",
+                ],
+              ].map(([icon, n, t, d]) => (
+                <article
+                  key={n}
+                  className="card glass relative flex flex-col rounded-3xl border border-white/5 p-7 sm:p-9"
+                >
+                  <IconBox name={icon as IconName} />
+                  <span className="absolute right-7 top-7 font-mono text-[9px] text-slate400 sm:right-9 sm:top-9">
+                    {n}
                   </span>
-                ))}
-              </div>
-              <div className="mt-6 flex gap-8 border-t border-white/5 pt-4 font-mono text-[11px] text-slate400">
-                <span>18 vouches</span>
-                <span>32 reviews</span>
+                  <h3 className="mt-16 font-display text-3xl font-medium tracking-tight">
+                    {t}
+                  </h3>
+                  <p className="mt-4 max-w-lg text-sm leading-7 text-slate400">
+                    {d}
+                  </p>
+                </article>
+              ))}
+            </div>
+            <div className="card mt-14 overflow-x-auto rounded-3xl border border-white/5 bg-surface/60 p-8">
+              <div className="min-w-[560px]">
+                <div className="flex flex-col items-center gap-1 font-mono text-sm text-slate400">
+                  {[
+                    "WALLET",
+                    "ON-CHAIN HISTORY",
+                    "BEHAVIOR SIGNALS",
+                    "ECONOMIC RELATIONSHIPS",
+                    "ATTESTATIONS",
+                    "PROOF OF REPUTATION",
+                    "TRUST DECISION",
+                  ].map((step, i) => (
+                    <div key={step} className="flex flex-col items-center">
+                      <span className="px-4 py-1 text-center">{step}</span>
+                      {i < 6 && <span className="text-accent">↓</span>}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* 13. DIRECTORY */}
-        <section className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
+        {/* 5. PROOF OF REPUTATION */}
+        <section id="proof" className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
           <div className="mx-auto max-w-7xl">
             <Head
-              kick="Endorsement directory"
-              title={<>Discover wallets <span className="text-slate400">worth knowing.</span></>}
-              sub="Explore wallets with established credibility and verified roles."
+              kick="Proof of reputation"
+              title="Reputation should be backed by evidence."
+              sub="Fathom transforms observable wallet activity and attestations into structured proof objects that can be inspected and verified."
             />
             <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {["Builders", "Reviewers", "Community Moderators", "More verified roles"].map((c, i) => (
-                <div key={c} className="reveal glass rounded-3xl border border-white/5 p-7">
-                  <span className="font-mono text-[9px] text-slate400">0{i + 1}</span>
-                  <h3 className="mt-8 font-display text-xl font-medium">{c}</h3>
-                </div>
+              {[
+                ["clock", "Wallet Age", "3 years 8 months", "On-chain history"],
+                ["coins", "Economic History", "$284K+ historical activity", "Transaction history"],
+                ["users", "Repeat Counterparties", "34 relationships", "Wallet interactions"],
+                ["boxes", "Protocol History", "18 protocols interacted with", "On-chain activity"],
+              ].map(([icon, k, v, src]) => (
+                <article
+                  key={k}
+                  className="card glass shine-border flex flex-col rounded-3xl border border-white/5 p-7 sm:p-9"
+                >
+                  <IconBox name={icon as IconName} />
+                  <div className="mt-6 font-mono text-[9px] uppercase tracking-[0.18em] text-accent">
+                    {k}
+                  </div>
+                  <div className="mt-3 font-display text-xl font-medium">
+                    {v}
+                  </div>
+                  <div className="mt-6 flex items-center justify-between text-xs text-slate400">
+                    <span>Source: {src}</span>
+                    <span className="text-accent">✓</span>
+                  </div>
+                </article>
               ))}
             </div>
-            <p className="reveal mt-8 font-mono text-[11px] uppercase tracking-[0.2em] text-slate400">
-              A reputation + discovery layer — <span className="text-white">not a marketplace.</span>
-            </p>
+            <div className="card mt-10">
+              <a
+                href="#why"
+                className="inline-flex items-center gap-2 text-sm font-medium text-accent"
+              >
+                Explore Proof <Arrow />
+              </a>
+            </div>
           </div>
         </section>
 
-        {/* 14. PRODUCT STATEMENT */}
-        <section className="border-t border-white/5 px-5 py-28 text-center sm:px-6 lg:px-8 lg:py-40">
+        {/* 6. WHY THIS REPUTATION? */}
+        <section id="why" className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
           <div className="mx-auto max-w-7xl">
-            <h2 className="reveal mx-auto max-w-5xl font-display text-5xl font-medium leading-[1.02] tracking-tight sm:text-6xl md:text-7xl">
-              Trust shouldn&apos;t require knowing someone&apos;s{" "}
-              <span className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent">name.</span>
-            </h2>
-            <p className="reveal mx-auto mt-8 max-w-xl text-base leading-7 text-slate400">
-              Fathom creates a reputation layer for the pseudonymous internet,
-              where credibility comes from behavior and community verification.
-            </p>
-          </div>
-        </section>
-
-        {/* 15. FINAL CTA */}
-        <section className="relative overflow-hidden border-t border-white/5 px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
-          <div className="glow-spot left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: 700, height: 700 }} />
-          <div className="reveal relative z-10 mx-auto max-w-4xl text-center">
-            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-3 py-1.5">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
-                Robinhood Chain testnet
-              </span>
-            </div>
-            <h2 className="font-display text-5xl font-medium leading-[0.95] tracking-tighter sm:text-7xl">
-              Build reputation.
-              <span className="block bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent">
-                Stay pseudonymous.
-              </span>
-            </h2>
-            <p className="mx-auto mt-7 max-w-md text-base leading-7 text-slate400">
-              Start building your on-chain credibility with Fathom.
-            </p>
-            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <a
-                href="#reputation"
-                className="solana-button group flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-black transition duration-300 hover:scale-105"
-              >
-                Connect Wallet
-                <Arrow className="transition duration-300 group-hover:translate-x-1" />
-              </a>
-              <a
-                href="#reputation"
-                className="flex items-center justify-center rounded-full border border-white/10 bg-white/[0.02] px-6 py-3.5 text-sm font-medium text-slate400 transition duration-300 hover:border-accent/20 hover:bg-accent/5 hover:text-white"
-              >
-                Explore Reputation
-              </a>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* 16. FOOTER */}
-      <footer className="relative z-10 border-t border-white/5 bg-black/20 px-5 py-14 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-accent/20 bg-accent/5 font-display font-semibold text-accent">
-                  F
+            <div className="grid items-center gap-16 lg:grid-cols-2">
+              <div>
+                <Head
+                  kick="Why this reputation?"
+                  title={
+                    <>
+                      Don&apos;t just see the score.
+                      <br />
+                      See why.
+                    </>
+                  }
+                  sub="The score is only the summary. The evidence is the reputation."
+                />
+                <div className="card mt-10 space-y-4">
+                  {[
+                    ["Economic History", "86"],
+                    ["Counterparty History", "91"],
+                    ["Protocol History", "78"],
+                    ["Community Trust", "74"],
+                  ].map(([k, v]) => (
+                    <div key={k}>
+                      <div className="flex items-center justify-between font-mono text-xs text-slate400">
+                        <span>{k}</span>
+                        <span className="text-white">{v}</span>
+                      </div>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/5">
+                        <div
+                          className="h-full rounded-full bg-accent"
+                          style={{ width: `${v}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <span className="font-display font-semibold">Fathom</span>
               </div>
-              <p className="mt-5 max-w-xs text-sm leading-6 text-slate400">
-                Privacy-first on-chain trust layer.
-              </p>
+              <div className="card">
+                <div className="glass shine-border rounded-3xl border border-white/5 p-7 sm:p-9">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
+                      Reputation
+                    </span>
+                    <ExampleTag />
+                  </div>
+                  <div className="mt-2 font-display text-6xl font-medium">
+                    812
+                  </div>
+                  <div className="my-6 h-px bg-white/10" />
+                  <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-accent">
+                    Proof
+                  </div>
+                  <ul className="mt-3 space-y-2 text-sm text-slate400">
+                    {[
+                      "3.8 years active",
+                      "34 repeat counterparties",
+                      "18 protocols",
+                      "Consistent activity",
+                      "7 verified attestations",
+                    ].map((t) => (
+                      <li key={t} className="flex items-center gap-2">
+                        <span className="text-accent">✓</span>
+                        {t}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="my-6 h-px bg-white/10" />
+                  <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
+                    Evidence
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                    {["View transaction", "View relationship", "View attestation"].map(
+                      (t) => (
+                        <span
+                          key={t}
+                          className="rounded-full border border-white/15 px-3 py-1 text-white/70"
+                        >
+                          {t}
+                        </span>
+                      ),
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <h4 className="font-mono text-[9px] uppercase tracking-[0.18em] text-white">Product</h4>
-              <div className="mt-5 space-y-3 text-sm text-slate400">
+          </div>
+        </section>
+
+        {/* 7. TRUST GRAPH */}
+        <section id="trust-graph" className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
+          <div className="mx-auto max-w-7xl">
+            <Head
+              kick="Trust graph"
+              title="Trust is built through relationships."
+              sub="A wallet doesn't exist in isolation. Fathom maps interactions between wallets, protocols, contracts, counterparties, and attestations to reveal the relationships behind on-chain behavior."
+            />
+            <div className="mt-14 grid gap-10 lg:grid-cols-2">
+              <div className="card glass rounded-3xl border border-white/5 p-7 sm:p-9">
+                <div className="font-mono text-xs leading-8 text-slate400">
+                  <div className="text-center text-accent">Protocol</div>
+                  <div className="text-center text-slate400">│</div>
+                  <div className="flex justify-center gap-8">
+                    <span>Wallet A</span>
+                    <span className="text-white/50">─────</span>
+                    <span>Wallet B</span>
+                  </div>
+                  <div className="flex justify-center gap-4">
+                    <span>│</span>
+                    <span>│</span>
+                  </div>
+                  <div className="flex justify-center gap-8">
+                    <span className="text-white/50">└────</span>
+                    <span>Wallet C</span>
+                    <span className="text-white/50">┘</span>
+                  </div>
+                  <div className="text-center">│</div>
+                  <div className="text-center text-accent">Attester</div>
+                </div>
+              </div>
+              <div className="card">
+                <div className="space-y-2">
+                  {[
+                    "Repeated interactions",
+                    "Relationship duration",
+                    "Counterparty history",
+                    "Protocol interactions",
+                    "Attestations",
+                    "Disputes",
+                  ].map((t) => (
+                    <div
+                      key={t}
+                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-white/80"
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                      {t}
+                    </div>
+                  ))}
+                </div>
+                <a
+                  href="#"
+                  className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-accent"
+                >
+                  Explore the Trust Graph <Arrow />
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 8. HUMAN CONTEXT — ATTESTATIONS */}
+        <section className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid items-center gap-16 lg:grid-cols-2">
+              <div>
+                <Head
+                  kick="Human context"
+                  title={
+                    <>
+                      On-chain history shows what happened.
+                      <br />
+                      Attestations add context.
+                    </>
+                  }
+                  sub="Not everything meaningful exists in transaction data. Fathom allows wallets to provide structured attestations about relationships, roles, and experiences — while keeping on-chain evidence as the foundation."
+                />
+                <p className="card mt-8 font-mono text-sm text-accent">
+                  Attestations add context. They don&apos;t replace evidence.
+                </p>
+              </div>
+              <div className="card">
+                <div className="glass shine-border rounded-3xl border border-white/5 p-7 sm:p-9">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <IconBox name="fileCheck" />
+                      <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-accent">
+                        Attestation
+                      </span>
+                    </div>
+                    <ExampleTag />
+                  </div>
+                  <dl className="mt-8 space-y-3 text-sm">
+                    {[
+                      ["Role", "Builder"],
+                      ["Relationship", "Worked together"],
+                      ["Duration", "2 years"],
+                      ["Attested by", "0x82A…19C4"],
+                      ["Evidence", "Verified relationship"],
+                    ].map(([k, v]) => (
+                      <div
+                        key={k}
+                        className="flex items-center justify-between border-b border-white/5 pb-3"
+                      >
+                        <dt className="text-slate400">{k}</dt>
+                        <dd className="font-mono text-white">{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 9. RISK SIGNALS */}
+        <section className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
+          <div className="mx-auto max-w-7xl">
+            <Head
+              kick="Risk signals"
+              title="Trust isn't only about positive signals."
+              sub="Fathom surfaces explainable risk signals that may require further investigation."
+            />
+            <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                ["alert", "Fresh Wallet", "Wallet created recently"],
+                ["network", "Concentrated Graph", "High concentration of interactions"],
+                ["repeat", "Circular Relationships", "Potential circular transaction pattern"],
+                ["users", "Vouch Clustering", "Unusual concentration in vouch relationships"],
+              ].map(([icon, t, d]) => (
+                <article
+                  key={t}
+                  className="card flex flex-col rounded-3xl border border-red-400/20 bg-red-400/5 p-7 sm:p-9"
+                >
+                  <IconBox name={icon as IconName} tone="danger" />
+                  <div className="mt-6 font-mono text-[9px] uppercase tracking-[0.18em] text-red-400">
+                    {t}
+                  </div>
+                  <p className="mt-3 text-sm leading-7 text-slate400">{d}</p>
+                </article>
+              ))}
+            </div>
+            <p className="card mt-8 text-sm text-slate400">
+              Signals are evidence for investigation — not automatic accusations.
+            </p>
+          </div>
+        </section>
+
+        {/* 10. REPUTATION PROFILE */}
+        <section id="profile" className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
+          <div className="mx-auto max-w-7xl">
+            <Head
+              kick="Reputation profile"
+              title={
+                <>
+                  One wallet.
+                  <br />A complete reputation context.
+                </>
+              }
+            />
+            <div className="card mx-auto mt-14 max-w-sm">
+              <div className="glass shine-border rounded-3xl border border-white/5 p-7 sm:p-9">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-sm text-white">0x7A3…91F2</span>
+                  <ExampleTag />
+                </div>
+                <div className="mt-1 text-xs text-accent">Verified Wallet</div>
+                <div className="mt-6 text-center">
+                  <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
+                    Reputation
+                  </div>
+                  <div className="font-display text-6xl font-medium">812</div>
+                </div>
+                <dl className="mt-6 space-y-3 text-sm">
+                  {[
+                    ["Economic History", "86"],
+                    ["Counterparty History", "91"],
+                    ["Protocol History", "78"],
+                    ["Community Trust", "74"],
+                    ["Risk Signals", "Low"],
+                  ].map(([k, v]) => (
+                    <div
+                      key={k}
+                      className="flex items-center justify-between border-b border-white/5 pb-3"
+                    >
+                      <dt className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
+                        {k}
+                      </dt>
+                      <dd className="font-mono text-white">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <dl className="mt-6 space-y-2 text-sm text-slate400">
+                  {[
+                    ["3y 8m", "Wallet Age"],
+                    ["1,842", "Transactions"],
+                    ["126", "Counterparties"],
+                    ["34", "Repeat Relationships"],
+                  ].map(([v, k]) => (
+                    <div key={k} className="flex items-center justify-between">
+                      <dt>{k}</dt>
+                      <dd className="font-mono text-white">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <button className="mt-6 w-full rounded-full border border-accent/40 py-2.5 text-sm font-medium text-accent transition hover:bg-accent/10">
+                  View Evidence
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 11. PRIVACY */}
+        <section className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
+          <div className="mx-auto max-w-7xl">
+            <Head
+              kick="Pseudonymous by design"
+              title={
+                <>
+                  Verify behavior.
+                  <br />
+                  Not identity.
+                </>
+              }
+              sub="Fathom is designed around wallet-based identity. You don't need to reveal your real-world identity to build or inspect reputation."
+            />
+            <div className="card mt-14 max-w-md rounded-3xl border border-white/5 bg-surface/60 p-7 sm:p-9">
+              <div className="flex items-center gap-3">
+                <IconBox name="lock" />
+                <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
+                  Identity requirements
+                </span>
+              </div>
+              <div className="mt-6">
                 {[
-                  ["How It Works", "#how"],
-                  ["Reputation", "#reputation"],
-                  ["Vouches", "#reputation"],
-                  ["Reviews", "#reputation"],
-                  ["Badges", "#reputation"],
-                  ["Score-Gated Access", "#reputation"],
-                ].map(([t, href]) => (
-                  <a key={t} href={href} className="block transition hover:text-white">{t}</a>
+                  ["Wallet address", "Required"],
+                  ["Real name", "Not required"],
+                  ["Profile photo", "Not required"],
+                  ["Email", "Not required"],
+                  ["Phone", "Not required"],
+                  ["Government ID", "Not required"],
+                ].map(([k, v]) => (
+                  <div
+                    key={k}
+                    className="flex items-center justify-between border-b border-white/5 py-3 text-sm last:border-b-0"
+                  >
+                    <span className="text-slate400">{k}</span>
+                    <span
+                      className={`font-mono text-xs ${
+                        v === "Required" ? "text-accent" : "text-white/50"
+                      }`}
+                    >
+                      {v}
+                    </span>
+                  </div>
                 ))}
               </div>
             </div>
-            <div>
-              <h4 className="font-mono text-[9px] uppercase tracking-[0.18em] text-white">Resources</h4>
-              <div className="mt-5 space-y-3 text-sm text-slate400">
-                <a href="#" className="block transition hover:text-white">Documentation</a>
-                <a href="#" className="block transition hover:text-white">GitHub</a>
-              </div>
+            <p className="card mt-8 font-display text-2xl tracking-tight">
+              Trust wallets, not identities.
+            </p>
+          </div>
+        </section>
+
+        {/* 12. FOR THE ECOSYSTEM */}
+        <section id="builders" className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
+          <div className="mx-auto max-w-7xl">
+            <Head
+              kick="Built for pseudonymous economies"
+              title="Trust infrastructure for the next generation of economic networks."
+            />
+            <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                ["repeat", "OTC Trading", "Understand a counterparty before a transaction."],
+                ["store", "Marketplaces", "Surface reputation alongside wallet activity."],
+                ["users", "DAOs", "Evaluate contributors through verifiable history."],
+                ["rocket", "Launchpads", "Add reputation signals to participant evaluation."],
+                ["trendingUp", "Prediction Markets", "Understand participants beyond a username."],
+                ["briefcase", "Freelance Protocols", "Build reputation around completed relationships."],
+              ].map(([icon, t, d], i) => (
+                <article
+                  key={t}
+                  className="card glass flex flex-col rounded-3xl border border-white/5 p-7 sm:p-9"
+                >
+                  <IconBox
+                    name={icon as IconName}
+                    tone={i % 2 === 1 ? "purple" : "accent"}
+                  />
+                  <h3 className="mt-6 font-display text-lg font-medium">{t}</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate400">{d}</p>
+                </article>
+              ))}
             </div>
-            <div>
-              <h4 className="font-mono text-[9px] uppercase tracking-[0.18em] text-white">Legal</h4>
-              <div className="mt-5 space-y-3 text-sm text-slate400">
-                <a href="#" className="block transition hover:text-white">Privacy</a>
-                <a href="#" className="block transition hover:text-white">Terms</a>
-              </div>
-              <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-accent/10 bg-accent/5 px-3 py-1.5">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
-                <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-accent">Testnet</span>
-              </div>
+            <div className="card mt-10">
+              <a
+                href="#api"
+                className="inline-flex items-center gap-2 text-sm font-medium text-accent"
+              >
+                Build with Fathom <Arrow />
+              </a>
             </div>
           </div>
-          <div className="mt-14 flex flex-col justify-between gap-4 border-t border-white/5 pt-6 text-[10px] text-slate400 sm:flex-row">
-            <span>© 2026 Fathom</span>
-            <span className="font-mono uppercase tracking-[0.15em]">Trust without identity</span>
+        </section>
+
+        {/* 13. REPUTATION API */}
+        <section id="api" className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
+          <div className="mx-auto max-w-7xl">
+            <Head
+              kick="Reputation API"
+              title="Make wallet reputation part of your product."
+              sub="Fathom exposes reputation, proofs, risk signals, relationship metrics, and attestations through an integration layer."
+            />
+            <div className="card mt-14 max-w-2xl overflow-hidden rounded-3xl border border-white/5 bg-terminal shadow-[0_30px_100px_-40px_rgba(20,241,149,0.2)]">
+              <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/70" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-accent/70" />
+                </div>
+                <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
+                  GET /reputation
+                </span>
+                <ExampleTag />
+              </div>
+              <div className="p-6">
+                <span className="terminal-line text-white/60">
+                  GET /reputation/0x7A3…91F2
+                </span>
+                <pre className="terminal-line mt-4 overflow-x-auto text-accent">
+{`{
+  "wallet": "0x7A3…91F2",
+  "reputation": 812,
+  "dimensions": {
+    "economic": 86,
+    "counterparty": 91,
+    "protocol": 78
+  },
+  "proofs": [],
+  "riskSignals": [],
+  "attestations": []
+}`}
+                </pre>
+              </div>
+            </div>
+            <div className="card mt-10">
+              <a
+                href="#"
+                className="inline-flex items-center gap-2 text-sm font-medium text-accent"
+              >
+                Explore the API <Arrow />
+              </a>
+            </div>
           </div>
-        </div>
-      </footer>
+        </section>
+
+        {/* 14. FINAL CTA */}
+        <section className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="card font-display text-4xl font-medium tracking-tight sm:text-5xl">
+              Before you trust the wallet,
+              <br />
+              look at the history.
+            </h2>
+            <p className="card mx-auto mt-5 max-w-xl text-base leading-7 text-slate400">
+              Search a wallet and explore the evidence behind its reputation.
+            </p>
+            <div className="card mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <PrimaryLink href="#check">Search a Wallet</PrimaryLink>
+              <a
+                href="#builders"
+                className="flex items-center justify-center gap-2 rounded-full border border-white/15 px-6 py-3.5 text-sm font-medium text-white transition hover:border-white/40"
+              >
+                Build with Fathom
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* 15. FOOTER */}
+        <footer className="border-t border-white/5 px-5 py-16 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="flex flex-col gap-10 lg:flex-row lg:justify-between">
+              <div className="max-w-xs">
+                <Logo />
+                <p className="mt-4 text-sm text-slate400">
+                  Privacy-first on-chain trust layer.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-10 sm:grid-cols-4">
+                {[
+                  [
+                    "Product",
+                    ["Search Wallet", "Proof of Reputation", "Trust Graph", "Reputation API"],
+                  ],
+                  [
+                    "Resources",
+                    ["Documentation", "How It Works", "Integrations"],
+                  ],
+                  ["Community", ["X", "Discord", "GitHub"]],
+                  ["Legal", ["Privacy", "Terms"]],
+                ].map(([group, links]) => (
+                  <div key={group as string}>
+                    <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
+                      {group}
+                    </div>
+                    <ul className="mt-4 space-y-2">
+                      {(links as string[]).map((l) => (
+                        <li key={l}>
+                          <a
+                            href="#"
+                            className="text-sm text-white/60 transition hover:text-white"
+                          >
+                            {l}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="mt-14 border-t border-white/5 pt-6 text-xs text-slate400">
+              © 2026 Fathom
+            </div>
+          </div>
+        </footer>
+      </main>
     </div>
   );
 }

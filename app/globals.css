@@ -82,6 +82,16 @@ body {
   pointer-events: none;
 }
 
+.glow-top-left {
+  top: -220px;
+  left: -220px;
+}
+
+.glow-bottom-right {
+  right: -220px;
+  bottom: -200px;
+}
+
 /* gradient hairline on top of terminal cards */
 .shine-border {
   position: relative;
@@ -127,19 +137,6 @@ body {
   background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.1), transparent);
 }
 
-/* scroll reveal, toggled by IntersectionObserver */
-.reveal {
-  opacity: 0;
-  transform: translateY(30px);
-  transition:
-    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.reveal-visible {
-  opacity: 1;
-  transform: none;
-}
-
 @media (max-width: 767px) {
   .glow-spot {
     width: 400px;
@@ -148,9 +145,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
+  .glow-spot {
+    animation: none;
   }
 }

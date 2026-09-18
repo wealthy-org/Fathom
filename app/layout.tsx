@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Providers } from "@/app/providers";
 import "./globals.css";
 
 const sans = Inter({
@@ -18,9 +19,9 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fathom — Trust Without Identity",
+  title: "Fathom — Know the Wallet Before You Trust It",
   description:
-    "Privacy-first on-chain trust layer. Wallets build verifiable credibility from behavior, without revealing real-world identity.",
+    "Fathom turns wallet history, economic relationships, behavioral signals, and attestations into verifiable trust evidence.",
 };
 
 export default function RootLayout({
@@ -28,7 +29,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${sans.variable} ${display.variable} ${mono.variable} h-full`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
