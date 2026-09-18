@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useLayoutEffect, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -291,6 +292,7 @@ function Logo() {
 }
 
 function SearchWalletForm() {
+  const router = useRouter();
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -305,6 +307,7 @@ function SearchWalletForm() {
       return;
     }
     setError(null);
+    router.push(`/wallets/${trimmed.toLowerCase()}`);
   }
 
   return (
@@ -343,7 +346,7 @@ function SearchWalletForm() {
         <p className="mt-2 font-mono text-xs text-red-400">{error}</p>
       )}
       <p className="mt-3 text-xs text-slate400">
-        No account required. Profile lookup ships in Fase 01.
+        No account required. Enter any wallet address to inspect it.
       </p>
     </form>
   );

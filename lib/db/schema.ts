@@ -1,6 +1,7 @@
 import {
   bigint,
   bigserial,
+  boolean,
   char,
   check,
   index,
@@ -27,6 +28,9 @@ import type { ScoreBreakdown } from "@/lib/score/types";
 const timestamptz = (name: string) =>
   timestamp(name, { withTimezone: true, mode: "date" });
 
+// ponytail: BigInt(0) bukan literal 0n — target TS proyek masih ES2017.
+const ZERO = BigInt(0);
+
 export const wallets = pgTable(
   "wallets",
   {
@@ -46,9 +50,76 @@ export const walletOnchainStats = pgTable("wallet_onchain_stats", {
   address: char("address", { length: 42 })
     .primaryKey()
     .references(() => wallets.address),
-  // NULL di MVP — first_tx_at bukan dependency sampai historical source ditentukan
+  // NULL = belum diketahui. RPC-only tidak bisa enumerasi riwayat (Spec 01 data blocker).
+  // Jangan pakai default 0 — itu mengarang jumlah transaksi.
   firstTxAt: timestamptz("first_tx_at"),
-  txCount: integer("tx_count").notNull().default(0),
+  lastTxAt: timestamptz("last_tx_at"),
+  txCount: integer("tx_count"),
+  // Sumber data indexed terakhir, mis. "blockscout". NULL = belum pernah di-fetch.
+  source: varchar("source", { length: 32 }),
+  fetchedAt: timestamptz("fetched_at").notNull().defaultNow(),
+});
+
+/**
+ * Cache alamat yang pernah berinteraksi (Spec 04). Sengaja TIDAK FK ke `wallets`
+ * supaya `wallets` tetap berarti "wallet yang dicari", bukan setiap address lawan
+ * transaksi. Menyimpan klasifikasi EOA/kontrak dari sumber indexed.
+ */
+export const counterparties = pgTable("counterparties", {
+  address: char("address", { length: 42 }).primaryKey(),
+  isContract: boolean("is_contract").notNull().default(false),
+  source: varchar("source", { length: 32 }),
+  firstSeenAt: timestamptz("first_seen_at").notNull().defaultNow(),
+  updatedAt: timestamptz("updated_at").notNull().defaultNow(),
+});
+
+/**
+ * Edge trust graph (Spec 04): relasi subject -> counterparty dari interaksi langsung.
+ * valueSent/valueReceived perspektif subject (wei, numeric(78,0) → bigint).
+ */
+export const walletRelationships = pgTable(
+  "wallet_relationships",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    subjectAddress: char("subject_address", { length: 42 })
+      .notNull()
+      .references(() => counterparties.address),
+    counterpartyAddress: char("counterparty_address", { length: 42 })
+      .notNull()
+      .references(() => counterparties.address),
+    interactionCount: integer("interaction_count").notNull(),
+    valueSent: numeric("value_sent", { precision: 78, scale: 0, mode: "bigint" })
+      .notNull()
+      .default(ZERO),
+    valueReceived: numeric("value_received", {
+      precision: 78,
+      scale: 0,
+      mode: "bigint",
+    })
+      .notNull()
+      .default(ZERO),
+    firstInteractionAt: timestamptz("first_interaction_at"),
+    lastInteractionAt: timestamptz("last_interaction_at"),
+    source: varchar("source", { length: 32 }),
+    updatedAt: timestamptz("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    unique("wallet_relationships_pair").on(t.subjectAddress, t.counterpartyAddress),
+    index("idx_relationships_subject").on(t.subjectAddress, t.interactionCount),
+  ],
+);
+
+/**
+ * Status derivasi trust graph per subject (Spec 04). `complete` false = walk
+ * kena batas halaman, jadi jumlah counterparty adalah lower bound, bukan pasti.
+ * Menyimpan ini eksplisit supaya cache tidak diam-diam mengubah partial jadi pasti.
+ */
+export const trustGraphState = pgTable("trust_graph_state", {
+  subjectAddress: char("subject_address", { length: 42 })
+    .primaryKey()
+    .references(() => counterparties.address),
+  complete: boolean("complete").notNull(),
+  source: varchar("source", { length: 32 }),
   fetchedAt: timestamptz("fetched_at").notNull().defaultNow(),
 });
 

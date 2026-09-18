@@ -6,6 +6,36 @@ export const THRESHOLDS = {
     confirmations: 3,
   },
 
+  explorer: {
+    // Sumber indexed (Blockscout) untuk riwayat per-address. RPC-only tidak bisa (Spec 01).
+    // TTL cache read-through; setelah lewat, refetch dari explorer.
+    cacheTtlHours: 24,
+    // Batas halaman walk pagination (Blockscout v2 default 50/halaman) —
+    // cegah query tak terbatas untuk wallet sangat aktif.
+    maxPages: 40,
+    // Timeout per request ke explorer (ms).
+    requestTimeoutMs: 10000,
+  },
+
+  trustGraph: {
+    // Definisi deterministik "repeat relationship" (Spec 04): >= 2 interaksi langsung.
+    repeatInteractionMin: 2,
+    // Batas halaman walk tx list untuk derivasi counterparty (selaras explorer.maxPages).
+    maxCounterpartyPages: 40,
+    // TTL cache read-through relationship.
+    cacheTtlHours: 24,
+  },
+
+  proof: {
+    // Model confidence Spec 02: nilai statis per verification_method (bukan dituning per-proof).
+    // indexed  = diambil langsung dari sumber indexed apa adanya.
+    // derived  = dihitung/diturunkan dari data indexed.
+    confidenceByMethod: {
+      indexed: 1.0,
+      derived: 0.7,
+    },
+  },
+
   baseline: {
     max: 100,
     // TBD — indikator & bobot baseline on-chain belum diputuskan (PRD §10.2)
