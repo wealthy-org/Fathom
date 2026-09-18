@@ -11,6 +11,7 @@ import { THRESHOLDS } from "@/config/thresholds";
 import type { Address } from "@/lib/score/types";
 
 const HOUR_MS = 3_600_000;
+const MS_PER_DAY = 86_400_000;
 const SOURCE = "blockscout";
 // ponytail: BigInt(0) bukan literal 0n — target TS proyek masih ES2017.
 const ZERO = BigInt(0);
@@ -24,11 +25,15 @@ export interface RelationshipSummary {
   valueReceived: bigint;
   firstInteractionAt: Date | null;
   lastInteractionAt: Date | null;
+  /** Jarak hari antara interaksi pertama & terakhir; null kalau tak ada timestamp. */
+  durationDays: number | null;
 }
 
 export interface TrustGraphSummary {
   uniqueCounterparties: number;
   repeatCounterparties: number;
+  /** Relasi terlama (hari) di antara counterparty; null kalau tidak ada. */
+  longestRelationshipDays: number | null;
   relationships: RelationshipSummary[];
   /**
    * false = walk tx kena batas halaman. Semua angka adalah lower bound,
@@ -127,6 +132,7 @@ function toSummary(pairs: Map<Address, Aggregate>, complete: boolean): TrustGrap
       valueReceived: agg.received,
       firstInteractionAt: agg.first,
       lastInteractionAt: agg.last,
+      durationDays: durationDays(agg.first, agg.last),
     }),
   );
 
@@ -135,9 +141,25 @@ function toSummary(pairs: Map<Address, Aggregate>, complete: boolean): TrustGrap
     repeatCounterparties: relationships.filter(
       (r) => r.interactionCount >= THRESHOLDS.trustGraph.repeatInteractionMin,
     ).length,
+    longestRelationshipDays: longestDuration(relationships),
     relationships,
     complete,
   };
+}
+
+/** Durasi relasi (hari). Null kalau salah satu ujung timestamp tidak ada. */
+function durationDays(first: Date | null, last: Date | null): number | null {
+  if (!first || !last) return null;
+  return Math.floor((last.getTime() - first.getTime()) / MS_PER_DAY);
+}
+
+function longestDuration(relationships: RelationshipSummary[]): number | null {
+  let longest: number | null = null;
+  for (const rel of relationships) {
+    if (rel.durationDays === null) continue;
+    if (longest === null || rel.durationDays > longest) longest = rel.durationDays;
+  }
+  return longest;
 }
 
 async function readCached(address: Address): Promise<TrustGraphSummary | null> {
@@ -177,6 +199,7 @@ async function readCached(address: Address): Promise<TrustGraphSummary | null> {
     valueReceived: row.valueReceived,
     firstInteractionAt: row.firstInteractionAt,
     lastInteractionAt: row.lastInteractionAt,
+    durationDays: durationDays(row.firstInteractionAt, row.lastInteractionAt),
   }));
 
   return {
@@ -184,6 +207,7 @@ async function readCached(address: Address): Promise<TrustGraphSummary | null> {
     repeatCounterparties: relationships.filter(
       (r) => r.interactionCount >= THRESHOLDS.trustGraph.repeatInteractionMin,
     ).length,
+    longestRelationshipDays: longestDuration(relationships),
     relationships,
     complete: state.complete,
   };

@@ -92,13 +92,16 @@ Implemented:
 
 - 01 Wallet Search
 - 02 Proof Engine — `wallet_age`, `transaction_history`, `unique_counterparty`,
-  `repeat_counterparty`
+  `repeat_counterparty`, `economic_history`, `protocol_history`,
+  `role_attestation`
 - 03 Reputation Profile — dimension framework; no global score
-- 04 Trust Graph
+- 04 Trust Graph — unique/repeat counterparties and relationship duration
 - 06 Claim Profile (implicit on SIWE) + alias editing
-- 07 Structured Attestations
+- 07 Structured Attestations — emitted as `role_attestation` proofs
 - 09 Disputes (signed reports, open-only)
 - 10 Reputation Card (Open Graph image)
+- 11 Reputation API — evidence-only (`GET /api/reputation/{address}`); omits
+  `score`, `tier`, `riskLevel`, and `vouches` rather than fabricate them
 
 Not yet implemented, pending product decisions:
 
@@ -106,7 +109,6 @@ Not yet implemented, pending product decisions:
   for `fresh_wallet`.
 - 08 Vouch — anti-farming rules and the withdrawal lifecycle are undefined; no
   `FathomVouchRegistry` ABI/address exists.
-- 11 Reputation API — follows the working reputation engine; no score yet.
 - 12 External Integrations — no concrete consumer yet.
 
 The global reputation score is intentionally not locked early. Profiles expose

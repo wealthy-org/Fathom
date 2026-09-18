@@ -53,6 +53,18 @@ function parseSeconds(value: unknown): Date | null {
 }
 
 /**
+ * Endpoint v2 mengembalikan timestamp ISO (mis. "2026-09-12T22:58:26.000000Z"),
+ * bukan epoch detik seperti v1 txlist. Terima keduanya supaya tidak diam-diam null.
+ */
+function parseTimestamp(value: unknown): Date | null {
+  if (typeof value === "number") return parseSeconds(value);
+  if (typeof value !== "string") return null;
+  if (/^\d+$/.test(value)) return parseSeconds(value);
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? new Date(ms) : null;
+}
+
+/**
  * Blockscout mendukung `next_page_params` di respons v2. Kita konversi ke query
  * string; kalau capaian maxPages, txCount dikembalikan null (tidak mengarang).
  */
@@ -169,7 +181,7 @@ export async function fetchAddressTransactions(
         from,
         to: asAddress(tx.to?.hash),
         valueWei: typeof tx.value === "string" ? tx.value : "0",
-        timestamp: parseSeconds(tx.timestamp),
+        timestamp: parseTimestamp(tx.timestamp),
         toIsContract: tx.to?.is_contract === true,
       });
     }

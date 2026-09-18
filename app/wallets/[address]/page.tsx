@@ -23,7 +23,26 @@ const PROOF_LABELS: Record<ProofType, string> = {
   transaction_history: "Transaction history",
   unique_counterparty: "Unique counterparties",
   repeat_counterparty: "Repeat counterparties",
+  economic_history: "Economic history",
+  protocol_history: "Protocol history",
+  role_attestation: "Role attestation",
 };
+
+const WEI_PER_ETH = BigInt(10) ** BigInt(18);
+
+/** Format nilai wei ke native unit untuk tampilan (AGENTS §9: hanya di boundary presentasi). */
+function formatNative(wei: string): string {
+  try {
+    const value = BigInt(wei);
+    const whole = value / WEI_PER_ETH;
+    const fraction = value % WEI_PER_ETH;
+    if (fraction === BigInt(0)) return `${whole} ETH`;
+    const padded = fraction.toString().padStart(18, "0").replace(/0+$/, "");
+    return `${whole}.${padded} ETH`;
+  } catch {
+    return `${wei} wei`;
+  }
+}
 
 function formatProofValue(proof: Proof): string {
   switch (proof.type) {
@@ -45,6 +64,30 @@ function formatProofValue(proof: Proof): string {
         minInteractions: number;
       };
       return `${repeatCounterparties} counterparties with ${minInteractions}+ interactions`;
+    }
+    case "economic_history": {
+      const { nativeSentWei, nativeReceivedWei } = proof.value as {
+        nativeSentWei: string;
+        nativeReceivedWei: string;
+      };
+      return `Sent ${formatNative(nativeSentWei)} · Received ${formatNative(nativeReceivedWei)}`;
+    }
+    case "protocol_history": {
+      const { contractCounterparties } = proof.value as {
+        contractCounterparties: number;
+      };
+      return `${contractCounterparties} contract counterparties`;
+    }
+    case "role_attestation": {
+      const { role, relationship, durationMonths, attester } = proof.value as {
+        role: string;
+        relationship: string;
+        durationMonths: number | null;
+        attester: string;
+      };
+      const duration =
+        durationMonths === null ? "" : ` · ${durationMonths} months`;
+      return `${role} · ${relationship}${duration} · by ${shortAddress(attester)}`;
     }
   }
 }
@@ -117,7 +160,7 @@ function AttestationsSection({
   attestations: WalletProfile["attestations"];
 }) {
   return (
-    <section className="mt-10">
+    <section id="attestations" className="mt-10">
       <h2 className="font-display text-lg">Attestations</h2>
       <p className="mt-2 max-w-2xl text-sm text-slate400">
         Structured, signed claims from other wallets. Attestations are
@@ -281,7 +324,7 @@ function TrustGraphSection({
         </div>
       ) : (
         <>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <Field
               label="Unique counterparties"
               value={`${prefix}${graph.uniqueCounterparties}`}
@@ -290,6 +333,14 @@ function TrustGraphSection({
               label="Repeat counterparties"
               value={`${prefix}${graph.repeatCounterparties}`}
               note="Repeat = 2 or more direct interactions."
+            />
+            <Field
+              label="Longest relationship"
+              value={
+                graph.longestRelationshipDays === null
+                  ? "Not available"
+                  : `${prefix}${graph.longestRelationshipDays} days`
+              }
             />
           </div>
           {!graph.complete && (
@@ -480,9 +531,9 @@ export default async function WalletProfilePage({
             </div>
           ) : (
             <ul className="mt-5 space-y-3">
-              {profile.proofs.map((proof) => (
+              {profile.proofs.map((proof, index) => (
                 <li
-                  key={proof.type}
+                  key={`${proof.type}-${index}`}
                   className="shine-border rounded-2xl border border-white/5 bg-white/[0.02] p-5"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">

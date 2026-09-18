@@ -63,7 +63,6 @@ export async function getWalletProfile(address: Address): Promise<WalletProfile>
 
   const stats = await onchainStats.fetch(address);
   const graph = await trustGraph.fetch(address);
-  const proofs = generateProofs(address, stats, graph, new Date());
 
   const attestationRows = await db
     .select({
@@ -79,6 +78,23 @@ export async function getWalletProfile(address: Address): Promise<WalletProfile>
     .from(attestations)
     .where(eq(attestations.subjectAddress, address))
     .orderBy(desc(attestations.createdAt));
+
+  // Proof attestation diterbitkan dari baris tersimpan (query yang sama dipakai
+  // untuk render Attestations), jadi tidak ada kalkulasi kedua (Spec 07/11).
+  const proofs = generateProofs(
+    address,
+    stats,
+    graph,
+    attestationRows.map((row) => ({
+      attester: row.attester as Address,
+      role: row.role,
+      relationship: row.relationship,
+      durationMonths: row.durationMonths,
+      message: row.message,
+      createdAt: row.createdAt,
+    })),
+    new Date(),
+  );
 
   const disputeRows = await db
     .select({

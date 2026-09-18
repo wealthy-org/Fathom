@@ -42,7 +42,7 @@ const DEFINITIONS: DimensionDefinition[] = [
   {
     id: "economic_history",
     label: "Economic History",
-    proofTypes: ["wallet_age", "transaction_history"],
+    proofTypes: ["wallet_age", "transaction_history", "economic_history"],
     reason: null,
     suppliedBy: null,
   },
@@ -56,16 +56,17 @@ const DEFINITIONS: DimensionDefinition[] = [
   {
     id: "protocol_history",
     label: "Protocol History",
-    proofTypes: [],
-    reason: "Protocol interaction data has not been classified.",
-    suppliedBy: "Spec 04",
+    proofTypes: ["protocol_history"],
+    reason: null,
+    suppliedBy: null,
   },
   {
     id: "community_trust",
     label: "Community Trust",
-    proofTypes: [],
-    reason: "Attestations are stored but not yet converted into proofs.",
-    suppliedBy: "Spec 07 / Spec 08",
+    proofTypes: ["role_attestation"],
+    reason:
+      "Attestations are supporting evidence only — they do not create reputation on their own.",
+    suppliedBy: "Spec 08",
   },
   {
     id: "risk_signals",
