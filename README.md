@@ -13,7 +13,7 @@ the only mandatory input.
 - Next.js 16 (App Router) + TypeScript (strict)
 - Tailwind CSS v4
 - PostgreSQL (Neon) via Drizzle ORM v1 rc
-- wagmi + viem, WalletConnect
+- wagmi + viem (injected wallets)
 - SIWE + iron-session
 - Zod for input validation
 
@@ -61,7 +61,7 @@ app/          App Router pages + API routes
 components/   Client + presentational components
 lib/chain/    All blockchain/explorer access (RPC, Blockscout adapters)
 lib/db/       Drizzle schema, client, row types
-lib/score/    Proofs, dimensions, shared score types
+lib/score/    Proofs, dimensions, risk engine, shared score types
 lib/wallet/   Profile assembly, alias rules
 lib/auth/     SIWE + session
 config/       thresholds.ts — all thresholds and parameters
@@ -96,6 +96,11 @@ Implemented:
   `role_attestation`
 - 03 Reputation Profile — dimension framework; no global score
 - 04 Trust Graph — unique/repeat counterparties and relationship duration
+- 05 Risk Engine — `fresh_wallet`, `circular_relationship_graph`,
+  `concentrated_counterparty_graph` derived on the fly with evidence. The other
+  three signals (`abnormal_transaction_pattern`, `flagged_counterparty_exposure`,
+  `suspicious_vouch_clustering`) are reported as `not_evaluable` — their sources
+  do not exist yet.
 - 06 Claim Profile (implicit on SIWE) + alias editing
 - 07 Structured Attestations — emitted as `role_attestation` proofs
 - 09 Disputes (signed reports, open-only)
@@ -105,11 +110,13 @@ Implemented:
 
 Not yet implemented, pending product decisions:
 
-- 05 Risk Engine — thresholds and signal rules are TBD; would require a score
-  for `fresh_wallet`.
+- 03 Reputation Score — the compression layer is not built by product decision.
+  The evidence model and scoring inputs are not concrete enough to lock a
+  formula (see `docs/specs/v2/03-reputation-profile.md`, PRD §13).
 - 08 Vouch — anti-farming rules and the withdrawal lifecycle are undefined; no
   `FathomVouchRegistry` ABI/address exists.
 - 12 External Integrations — no concrete consumer yet.
 
-The global reputation score is intentionally not locked early. Profiles expose
-evidence and dimensions; a score will be added as a compression layer on top.
+Reputation Score is intentionally deferred until the evidence model and scoring
+inputs are sufficiently concrete. The score is a compression layer over
+evidence, not the foundation of the product.

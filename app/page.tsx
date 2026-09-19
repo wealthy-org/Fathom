@@ -524,7 +524,7 @@ export default function Home() {
                     href="#profile"
                     className="inline-flex items-center gap-2 text-sm font-medium text-ink/70 transition hover:text-ink"
                   >
-                    Explore a Reputation
+                    Explore a Wallet
                     <Arrow />
                   </a>
                 </div>
@@ -774,21 +774,22 @@ export default function Home() {
                 />
                 <div className="card mt-10 space-y-4">
                   {[
-                    ["Economic History", "86"],
-                    ["Counterparty History", "91"],
-                    ["Protocol History", "78"],
-                    ["Community Trust", "74"],
+                    ["Economic History", "supported"],
+                    ["Counterparty History", "supported"],
+                    ["Protocol History", "supported"],
+                    ["Community Trust", "awaiting data"],
+                    ["Risk Signals", "supported"],
                   ].map(([k, v]) => (
                     <div key={k}>
-                      <div className="flex items-center justify-between font-mono text-xs text-slate400">
-                        <span>{k}</span>
-                        <span className="text-ink">{v}</span>
-                      </div>
-                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/5">
-                        <div
-                          className="h-full rounded-full bg-accent"
-                          style={{ width: `${v}%` }}
-                        />
+                      <div className="flex items-center justify-between font-mono text-xs">
+                        <span className="text-slate400">{k}</span>
+                        <span
+                          className={
+                            v === "supported" ? "text-accent-ink" : "text-slate400"
+                          }
+                        >
+                          {v}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -798,13 +799,14 @@ export default function Home() {
                 <div className="glass shine-border rounded-3xl border border-ink/10 p-7 sm:p-9">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
-                      Reputation
+                      Evidence
                     </span>
                     <ExampleTag />
                   </div>
-                  <div className="mt-2 font-display text-6xl font-medium">
-                    812
-                  </div>
+                  <p className="mt-2 text-sm text-slate400">
+                    No global score is produced. The profile exposes what the
+                    wallet actually did.
+                  </p>
                   <div className="my-6 h-px bg-ink/10" />
                   <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-accent-ink">
                     Proof
@@ -1012,19 +1014,17 @@ export default function Home() {
                   <ExampleTag />
                 </div>
                 <div className="mt-1 text-xs text-accent-ink">Verified Wallet</div>
-                <div className="mt-6 text-center">
-                  <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
-                    Reputation
-                  </div>
-                  <div className="font-display text-6xl font-medium">812</div>
-                </div>
+                <p className="mt-4 text-sm text-slate400">
+                  Evidence first. No global score is produced yet — the profile
+                  exposes what the wallet actually did.
+                </p>
                 <dl className="mt-6 space-y-3 text-sm">
                   {[
-                    ["Economic History", "86"],
-                    ["Counterparty History", "91"],
-                    ["Protocol History", "78"],
-                    ["Community Trust", "74"],
-                    ["Risk Signals", "Low"],
+                    ["Economic History", "supported"],
+                    ["Counterparty History", "supported"],
+                    ["Protocol History", "supported"],
+                    ["Community Trust", "awaiting data"],
+                    ["Risk Signals", "supported"],
                   ].map(([k, v]) => (
                     <div
                       key={k}
@@ -1033,7 +1033,13 @@ export default function Home() {
                       <dt className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
                         {k}
                       </dt>
-                      <dd className="font-mono text-ink">{v}</dd>
+                      <dd
+                        className={`font-mono ${
+                          v === "supported" ? "text-accent-ink" : "text-slate400"
+                        }`}
+                      >
+                        {v}
+                      </dd>
                     </div>
                   ))}
                 </dl>
@@ -1180,15 +1186,13 @@ export default function Home() {
                 <pre className="terminal-line mt-2 overflow-x-auto text-accent-ink">
 {`{
   "wallet": "0x7A3…91F2",
-  "reputation": 812,
-  "dimensions": {
-    "economic": 86,
-    "counterparty": 91,
-    "protocol": 78
-  },
-  "proofs": [],
+  "walletAgeDays": 1340,
+  "uniqueCounterparties": 126,
+  "repeatCounterparties": 34,
+  "attestations": 7,
+  "activeDisputes": 0,
   "riskSignals": [],
-  "attestations": []
+  "proofs": []
 }`}
                 </pre>
               </div>

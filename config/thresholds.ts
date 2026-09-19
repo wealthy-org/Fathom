@@ -43,6 +43,27 @@ export const THRESHOLDS = {
     },
   },
 
+  risk: {
+    // Spec 05. Signal dievaluasi on-the-fly dari data yang sudah diindeks
+    // (reproducible) — bukan tabel baru, bukan klasifikasi otomatis "malicious".
+    // Three signals are intentionally NOT evaluable: abnormal_transaction_pattern,
+    // flagged_counterparty_exposure, suspicious_vouch_clustering (lihat lib/score/risk.ts).
+    //
+    // fresh_wallet: umur wallet (hari) di bawah ini dianggap baru.
+    freshWalletMaxAgeDays: 30,
+    // fresh_wallet: jumlah tx langsung di bawah ini melengkapi evidence umur.
+    freshWalletMaxTxCount: 10,
+    // circular_relationship_graph: minimal counterparty dengan arus dua arah
+    // (valueSent > 0 dan valueReceived > 0) sebelum pola dianggap muncul.
+    circularMinMutualCounterparties: 3,
+    // concentrated_counterparty_graph: minimal counterparty sebelum distribusi
+    // dinilai bermakna (hindari "100% dari 1 lawan" sebagai temuan palsu).
+    concentrationMinCounterparties: 5,
+    // concentrated_counterparty_graph: share interaksi counterparty teratas
+    // (0.5 = 50%) untuk memicu sinyal.
+    concentrationTopShare: 0.5,
+  },
+
   baseline: {
     max: 100,
     // TBD — indikator & bobot baseline on-chain belum diputuskan (PRD §10.2)

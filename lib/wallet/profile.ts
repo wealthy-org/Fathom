@@ -4,6 +4,7 @@ import { attestations, disputes, wallets } from "@/lib/db/schema";
 import { onchainStats } from "@/lib/chain/onchain-stats";
 import { trustGraph, type TrustGraphSummary } from "@/lib/chain/trust-graph";
 import { generateProofs, type Proof } from "@/lib/score/proofs";
+import { assessRisk, type RiskSignal, type RiskState } from "@/lib/score/risk";
 import { getDimensions, type DimensionState } from "@/lib/score/dimensions";
 import type { Address } from "@/lib/score/types";
 
@@ -44,12 +45,14 @@ export interface WalletProfile {
   claimedAt: string | null;
   proofs: Proof[];
   dimensions: DimensionState[];
+  riskSignals: RiskSignal[];
+  riskStates: RiskState[];
   trustGraph: TrustGraphSummary;
   attestations: AttestationView[];
   disputes: DisputeView[];
 }
 
-/** Basic profile (Spec 01) + proof (Spec 02) + dimensions (Spec 03) + trust graph (Spec 04) + claim (Spec 06) + attestations (Spec 07) + disputes (Spec 09). Data yang tidak tersedia tetap null — jangan dikarang. */
+/** Basic profile (Spec 01) + proof (Spec 02) + dimensions (Spec 03) + trust graph (Spec 04) + claim (Spec 06) + attestations (Spec 07) + disputes (Spec 09) + risk (Spec 05). Data yang tidak tersedia tetap null — jangan dikarang. */
 export async function getWalletProfile(address: Address): Promise<WalletProfile> {
   const [wallet] = await db
     .select({
@@ -96,6 +99,11 @@ export async function getWalletProfile(address: Address): Promise<WalletProfile>
     new Date(),
   );
 
+  // Risk Engine (Spec 05) — dihitung on-the-fly dari data indexed yang sama,
+  // bukan kalkulasi kedua atas reputasi (Spec 11 §Boundary).
+  const risk = assessRisk(address, stats, graph, new Date());
+  const riskEvaluable = risk.states.some((state) => state.status !== "not_evaluable");
+
   const disputeRows = await db
     .select({
       id: disputes.id,
@@ -124,7 +132,11 @@ export async function getWalletProfile(address: Address): Promise<WalletProfile>
     firstSeenAt: wallet?.firstSeenAt.toISOString() ?? null,
     claimedAt: wallet?.claimedAt?.toISOString() ?? null,
     proofs,
-    dimensions: getDimensions(proofs),
+    // Profile tetap evidence-first: Reputation Score (Spec 03) sengaja ditunda
+    // sampai input scoring konkret — belum ada kalkulasi skor di sini.
+    dimensions: getDimensions(proofs, riskEvaluable),
+    riskSignals: risk.signals,
+    riskStates: risk.states,
     trustGraph: graph,
     attestations: attestationRows.map((row) => ({
       id: row.id,

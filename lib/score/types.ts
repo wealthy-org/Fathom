@@ -1,3 +1,14 @@
+/**
+ * Reputation Score types (Spec 03).
+ *
+ * Reputation Score is intentionally deferred until the evidence model and
+ * scoring inputs are sufficiently concrete. The score is a compression layer
+ * over evidence, not the foundation of the product.
+ *
+ * These types are kept so the shape is ready when the formula is decided; no
+ * `computeScore()` and no writer to `score_snapshots` exist yet.
+ */
+
 export type Address = `0x${string}`;
 
 export type VouchStatus = "active" | "disputed" | "slashed" | "withdrawn";

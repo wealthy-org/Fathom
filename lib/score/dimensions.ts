@@ -66,7 +66,7 @@ const DEFINITIONS: DimensionDefinition[] = [
     proofTypes: ["role_attestation"],
     reason:
       "Attestations are supporting evidence only — they do not create reputation on their own.",
-    suppliedBy: "Spec 08",
+    suppliedBy: "Spec 07",
   },
   {
     id: "risk_signals",
@@ -77,11 +77,26 @@ const DEFINITIONS: DimensionDefinition[] = [
   },
 ];
 
-/** Dimension yang punya proof nyata menjadi "supported"; sisanya slot jujur. */
-export function getDimensions(proofs: Proof[]): DimensionState[] {
+/**
+ * Dimension yang punya proof nyata menjadi "supported"; sisanya slot jujur.
+ *
+ * `riskEvaluable` (Spec 05) menandai apakah Risk Engine sudah bisa menilai
+ * minimal satu signal; bila ya, dimension Risk Signals dianggap supported
+ * karena evidence-nya bukan Proof on-chain melainkan risk signal terdedikasi.
+ */
+export function getDimensions(
+  proofs: Proof[],
+  riskEvaluable = false,
+): DimensionState[] {
   const present = new Set(proofs.map((proof) => proof.type));
 
   return DEFINITIONS.map((definition) => {
+    if (definition.id === "risk_signals") {
+      return {
+        ...definition,
+        status: riskEvaluable ? "supported" : "unsupported",
+      };
+    }
     const hasProof = definition.proofTypes.some((type) => present.has(type));
     return {
       ...definition,

@@ -6,6 +6,7 @@ import { normalizeAddress } from "@/lib/chain/address";
 import { getWalletProfile, type WalletProfile } from "@/lib/wallet/profile";
 import type { Proof, ProofType } from "@/lib/score/proofs";
 import type { DimensionState } from "@/lib/score/dimensions";
+import type { RiskState, RiskSignal, RiskSignalType } from "@/lib/score/risk";
 import { WalletShell } from "@/components/wallet-shell";
 import { CopyAddress } from "@/components/copy-address";
 import { AliasEditor } from "@/components/alias-editor";
@@ -27,6 +28,28 @@ const PROOF_LABELS: Record<ProofType, string> = {
   protocol_history: "Protocol history",
   role_attestation: "Role attestation",
 };
+
+const RISK_LABELS: Record<RiskSignalType, string> = {
+  fresh_wallet: "Fresh wallet",
+  abnormal_transaction_pattern: "Abnormal transaction pattern",
+  circular_relationship_graph: "Circular relationship graph",
+  concentrated_counterparty_graph: "Concentrated counterparty graph",
+  suspicious_vouch_clustering: "Suspicious vouch clustering",
+  flagged_counterparty_exposure: "Flagged counterparty exposure",
+};
+
+/** Ringkas evidence risk signal untuk tampilan — hanya field primitif. */
+function formatRiskEvidence(evidence: Record<string, unknown>): string {
+  const parts: string[] = [];
+  for (const [key, value] of Object.entries(evidence)) {
+    if (Array.isArray(value)) {
+      parts.push(`${key}: ${value.length} item${value.length === 1 ? "" : "s"}`);
+    } else if (typeof value === "number" || typeof value === "string" || typeof value === "boolean") {
+      parts.push(`${key}: ${value}`);
+    }
+  }
+  return parts.join(" · ");
+}
 
 const WEI_PER_ETH = BigInt(10) ** BigInt(18);
 
@@ -141,7 +164,9 @@ function DimensionRow({ dimension }: { dimension: DimensionState }) {
       </div>
       {dimension.status === "supported" ? (
         <p className="mt-2 text-sm text-slate400">
-          Backed by proofs: {dimension.proofTypes.join(", ")}.
+          {dimension.proofTypes.length > 0
+            ? `Backed by proofs: ${dimension.proofTypes.join(", ")}.`
+            : "Backed by dedicated risk signals."}
         </p>
       ) : (
         <p className="mt-2 text-sm text-slate400">
@@ -355,6 +380,85 @@ function TrustGraphSection({
   );
 }
 
+function RiskSection({
+  states,
+  signals,
+}: {
+  states: RiskState[];
+  signals: RiskSignal[];
+}) {
+  const detected = new Set(signals.map((signal) => signal.type));
+
+  return (
+    <section id="risk" className="mt-10">
+      <h2 className="font-display text-lg">Risk Signals</h2>
+      <p className="mt-2 max-w-2xl text-sm text-slate400">
+        Risk is not proof of wrongdoing — every signal is backed by evidence you
+        can inspect, and a signal never labels a wallet malicious. These are kept
+        separate from reputation.
+      </p>
+
+      {signals.length === 0 && (
+        <div className="shine-border mt-5 rounded-2xl border border-ink/10 bg-ink/[0.03] p-6 text-sm text-slate400">
+          No supported risk signal is present for this wallet.
+        </div>
+      )}
+
+      <ul className="mt-5 space-y-3">
+        {states.map((state) => {
+          const isDetected = detected.has(state.id);
+          const statusLabel = isDetected
+            ? state.severity ?? "detected"
+            : state.status.replace("_", " ");
+          return (
+            <li
+              key={state.id}
+              className="shine-border rounded-2xl border border-ink/10 bg-ink/[0.03] p-5"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-display text-base">
+                  {RISK_LABELS[state.id]}
+                </span>
+                <span
+                  className={`font-mono text-[10px] uppercase tracking-[0.18em] ${
+                    isDetected
+                      ? "text-accent-ink"
+                      : state.status === "not_evaluable"
+                        ? "text-ink/40"
+                        : "text-slate400"
+                  }`}
+                >
+                  {statusLabel}
+                </span>
+              </div>
+              {state.evidence ? (
+                <p className="mt-2 font-mono text-sm text-ink">
+                  {formatRiskEvidence(state.evidence)}
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-slate400">
+                  {state.reason}
+                  {state.suppliedBy && ` Will be supplied by ${state.suppliedBy}.`}
+                </p>
+              )}
+              {state.evidence_reference && (
+                <a
+                  href={state.evidence_reference}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-block break-all font-mono text-[11px] text-accent-ink hover:underline"
+                >
+                  {state.evidence_reference}
+                </a>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -478,6 +582,11 @@ export default async function WalletProfilePage({
 
         <TrustGraphSection graph={profile.trustGraph} />
 
+        <RiskSection
+          states={profile.riskStates}
+          signals={profile.riskSignals}
+        />
+
         <UnavailableSection
           title="Vouches"
           note="Economic backing (stake) is not implemented yet. It requires anti-farming rules that the spec has not defined (Spec 08)."
@@ -540,20 +649,22 @@ export default async function WalletProfilePage({
         </section>
 
         <section className="mt-10">
-          <h2 className="font-display text-lg">Why Score?</h2>
+          <h2 className="font-display text-lg">Why This Evidence?</h2>
           <p className="mt-2 max-w-2xl text-sm text-slate400">
-            No global reputation score is produced yet. The scoring formula is
-            intentionally not locked early (PRD §13). Until then, the profile
-            exposes the path a score will have to justify:
+            This profile is built from evidence, not from a single number. Each
+            layer points at the one above it, so every claim can be traced back
+            to raw on-chain data:
           </p>
           <div className="shine-border mt-5 rounded-2xl border border-ink/10 bg-ink/[0.03] p-6">
             <p className="font-mono text-sm text-ink">
-              Score → Why? → Dimension → Proof → Evidence
+              Wallet → Onchain History → Proofs → Evidence → Trust Decision
             </p>
             <p className="mt-3 text-sm text-slate400">
-              Today this path resolves directly to the proofs above: each proof
-              names its dimension, source, verification method, and the raw
-              explorer evidence it was derived from.
+              Each proof above names its source, verification method, and the
+              explorer evidence it was derived from. A reputation score may
+              eventually act as a compression layer over this evidence, but it is
+              intentionally deferred until the scoring inputs are concrete. The
+              trust decision stays yours.
             </p>
           </div>
         </section>

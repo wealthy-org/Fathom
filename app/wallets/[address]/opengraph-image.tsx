@@ -189,8 +189,7 @@ export default async function Image({
             <Metric label="Open disputes" value={metric(openDisputes)} />
           </div>
           <span style={{ fontSize: 18, color: SLATE }}>
-            Score not yet produced — the profile exposes evidence, not a single
-            opaque number.
+            Evidence before score — inspect what this wallet actually did.
           </span>
         </div>
 
