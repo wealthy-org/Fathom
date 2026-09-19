@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { normalizeAddress } from "@/lib/chain/address";
+import { explorerTransactionUrl } from "@/lib/chain/blockscout";
+import type { TrustGraphSummary } from "@/lib/chain/trust-graph";
 import { getWalletProfile, type WalletProfile } from "@/lib/wallet/profile";
 import type { Proof, ProofType } from "@/lib/score/proofs";
 import type { DimensionState } from "@/lib/score/dimensions";
@@ -115,8 +117,340 @@ function formatProofValue(proof: Proof): string {
   }
 }
 
+/** One-sentence claim per proof — words for what the code already asserts, no new semantics. */
+const PROOF_CLAIM: Record<ProofType, string> = {
+  wallet_age:
+    "Fathom claims this wallet has a known on-chain age, measured from its earliest indexed transaction.",
+  transaction_history:
+    "Fathom claims this many direct transactions involving the wallet, as counted from indexed history.",
+  unique_counterparty:
+    "Fathom claims this many distinct counterparties, derived from a complete transaction walk.",
+  repeat_counterparty:
+    "Fathom claims this many counterparties interacted with repeatedly — at least the interaction threshold shown.",
+  economic_history:
+    "Fathom claims these native sent/received totals, summed across direct transfers.",
+  contract_history:
+    "Fathom claims this many contract counterparties — contract identity only, never named protocols.",
+  role_attestation:
+    "Fathom claims another wallet signed this structured attestation about the subject.",
+};
+
+/** How each value is produced — derivation plus its important limitation. */
+const PROOF_DERIVATION: Record<ProofType, string> = {
+  wallet_age:
+    "Age is the whole-day difference between today and the earliest first-transaction timestamp from indexed history. If no first transaction is indexed, no wallet_age proof is emitted.",
+  transaction_history:
+    "Counted by walking indexed per-address transactions where the wallet is sender or receiver. Internal transactions and token transfers are out of scope. A null count (pagination cap exceeded) suppresses this proof entirely.",
+  unique_counterparty:
+    "Counted from counterparty relationships derived from the transaction walk. Emitted only when the walk is complete — otherwise the count would be a lower bound and the proof is suppressed.",
+  repeat_counterparty:
+    "Relationships whose interaction count meets the repeat threshold. Same complete-walk requirement as unique counterparties.",
+  economic_history:
+    "Summed per-counterparty sent/received across direct native transfers. Contract creations and self-transfers are excluded by derivation; internal and token transfers are out of scope.",
+  contract_history:
+    "Counterparties flagged as contracts by the indexed source. This is contract identity, not protocol identity — do not read these as named protocols.",
+  role_attestation:
+    "Recorded from a stored signed attestation. The message and signature are inspectable and re-verifiable in the Attestations section below.",
+};
+
+/** Max supporting rows shown per proof — display truncation, not a scoring parameter. */
+const MAX_DETAIL_ROWS = 8;
+
 function shortAddress(address: string) {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
+/** Small explorer link used inside proof detail tables. */
+function TxLink({ hash, label }: { hash: string; label: string }) {
+  return (
+    <a
+      href={explorerTransactionUrl(hash)}
+      target="_blank"
+      rel="noreferrer"
+      className="rounded border border-ink/15 px-2 py-0.5 font-mono text-[10px] text-ink/70 hover:border-accent-ink/30 hover:text-accent-ink"
+    >
+      {label}
+    </a>
+  );
+}
+
+/** Per-proof supporting evidence — representative data for inspection, never a second proof of the aggregate. */
+function ProofSupporting({
+  proof,
+  graph,
+}: {
+  proof: Proof;
+  graph: TrustGraphSummary;
+}) {
+  const txLevel = (proof.evidence_references ?? []).length > 0;
+
+  switch (proof.type) {
+    case "wallet_age": {
+      const { firstTxAt } = proof.value as { firstTxAt: string };
+      return (
+        <div className="space-y-1">
+          <p>Earliest indexed transaction: {formatDate(firstTxAt)}.</p>
+          {txLevel ? (
+            <p>
+              Representative supporting transaction:{" "}
+              <a
+                href={proof.evidence_reference}
+                target="_blank"
+                rel="noreferrer"
+                className="font-mono text-[11px] text-accent-ink hover:underline"
+              >
+                open transaction
+              </a>{" "}
+              — it supports the age claim but is{" "}
+              <span className="text-ink">
+                not proven to be the first transaction
+              </span>
+              .
+            </p>
+          ) : (
+            <p>
+              No transaction hash is indexed for this wallet yet, so the claim
+              falls back to address-level evidence above.
+            </p>
+          )}
+        </div>
+      );
+    }
+    case "transaction_history": {
+      const { txCount } = proof.value as { txCount: number };
+      return (
+        <div className="space-y-1">
+          <p>
+            Direct transactions where this wallet is sender or receiver — not
+            internal or token transfers.
+          </p>
+          {txLevel ? (
+            <p>
+              The transaction links above are representative supporting
+              transactions: they allow inspection but do{" "}
+              <span className="text-ink">
+                not independently prove the total of {txCount}
+              </span>
+              .
+              {!graph.complete &&
+                " Historical coverage is incomplete for this wallet."}
+            </p>
+          ) : (
+            <p>
+              No transaction hashes are indexed for this wallet yet, so the
+              claim falls back to address-level evidence above.
+            </p>
+          )}
+        </div>
+      );
+    }
+    case "unique_counterparty": {
+      const total = graph.relationships.length;
+      const rows = graph.relationships.slice(0, MAX_DETAIL_ROWS);
+      return (
+        <div className="space-y-2">
+          <p>
+            {total} distinct counterparties from a complete walk. Showing{" "}
+            {rows.length} of {total} — each link opens that
+            counterparty&apos;s Fathom profile.
+          </p>
+          <ul className="space-y-1 font-mono text-[11px]">
+            {rows.map((rel) => (
+              <li key={rel.counterparty} className="flex flex-wrap gap-x-3">
+                <Link
+                  href={`/wallets/${rel.counterparty}`}
+                  className="text-accent-ink hover:underline"
+                >
+                  {shortAddress(rel.counterparty)}
+                </Link>
+                <span className="text-slate400">
+                  {rel.interactionCount} interactions
+                  {rel.isContract ? " · contract" : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {total > rows.length && <p>+ {total - rows.length} more.</p>}
+        </div>
+      );
+    }
+    case "repeat_counterparty": {
+      const { minInteractions } = proof.value as { minInteractions: number };
+      const repeated = graph.relationships.filter(
+        (r) => r.interactionCount >= minInteractions,
+      );
+      const rows = repeated.slice(0, MAX_DETAIL_ROWS);
+      return (
+        <div className="space-y-2">
+          <p>
+            {repeated.length} counterparties with {minInteractions}+
+            interactions. Showing {rows.length} of {repeated.length}.
+          </p>
+          <ul className="space-y-2 font-mono text-[11px]">
+            {rows.map((rel) => (
+              <li key={rel.counterparty} className="space-y-1">
+                <span className="flex flex-wrap gap-x-3">
+                  <Link
+                    href={`/wallets/${rel.counterparty}`}
+                    className="text-accent-ink hover:underline"
+                  >
+                    {shortAddress(rel.counterparty)}
+                  </Link>
+                  <span className="text-slate400">
+                    {rel.interactionCount} interactions
+                  </span>
+                </span>
+                {rel.txHashes.length > 0 && (
+                  <span className="flex flex-wrap gap-2">
+                    {rel.txHashes.slice(0, 5).map((hash, i) => (
+                      <TxLink key={hash} hash={hash} label={`tx ${i + 1}`} />
+                    ))}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          {repeated.length > rows.length && (
+            <p>+ {repeated.length - rows.length} more.</p>
+          )}
+        </div>
+      );
+    }
+    case "economic_history": {
+      const ranked = [...graph.relationships]
+        .sort((a, b) => {
+          const totalA = a.valueSent + a.valueReceived;
+          const totalB = b.valueSent + b.valueReceived;
+          return totalA > totalB ? -1 : totalA < totalB ? 1 : 0;
+        })
+        .slice(0, MAX_DETAIL_ROWS);
+      return (
+        <div className="space-y-2">
+          <p>
+            Totals are summed across all direct relationships. Largest{" "}
+            {ranked.length} counterparties by volume:
+          </p>
+          <ul className="space-y-1 font-mono text-[11px]">
+            {ranked.map((rel) => (
+              <li key={rel.counterparty} className="flex flex-wrap gap-x-3">
+                <Link
+                  href={`/wallets/${rel.counterparty}`}
+                  className="text-accent-ink hover:underline"
+                >
+                  {shortAddress(rel.counterparty)}
+                </Link>
+                <span className="text-slate400">
+                  sent {formatNative(rel.valueSent.toString())} · received{" "}
+                  {formatNative(rel.valueReceived.toString())}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {graph.relationships.length > ranked.length && (
+            <p>+ {graph.relationships.length - ranked.length} more.</p>
+          )}
+        </div>
+      );
+    }
+    case "contract_history": {
+      const contracts = graph.relationships.filter((r) => r.isContract);
+      const rows = contracts.slice(0, MAX_DETAIL_ROWS);
+      return (
+        <div className="space-y-2">
+          <p>
+            {contracts.length} contract counterparties (identity only — not
+            named protocols). Showing {rows.length} of {contracts.length}.
+          </p>
+          <ul className="space-y-1 font-mono text-[11px]">
+            {rows.map((rel) => (
+              <li key={rel.counterparty} className="flex flex-wrap gap-x-3">
+                <Link
+                  href={`/wallets/${rel.counterparty}`}
+                  className="text-accent-ink hover:underline"
+                >
+                  {shortAddress(rel.counterparty)}
+                </Link>
+                <span className="text-slate400">
+                  {rel.interactionCount} interactions
+                </span>
+              </li>
+            ))}
+          </ul>
+          {contracts.length > rows.length && (
+            <p>+ {contracts.length - rows.length} more.</p>
+          )}
+        </div>
+      );
+    }
+    case "role_attestation": {
+      return (
+        <p>
+          This claim comes from a signed attestation. Inspect and re-verify the
+          message and signature in the{" "}
+          <a
+            href="#attestations"
+            className="font-mono text-[11px] text-accent-ink hover:underline"
+          >
+            Attestations section
+          </a>
+          .
+        </p>
+      );
+    }
+  }
+}
+
+/**
+ * Inline expandable proof detail: Claim → Derivation → Verification →
+ * Supporting evidence. Explorer links stay on the card itself. All content is
+ * words for data already on the page — no new queries, no new semantics.
+ */
+function ProofDetail({
+  proof,
+  graph,
+}: {
+  proof: Proof;
+  graph: TrustGraphSummary;
+}) {
+  return (
+    <details className="mt-3 rounded-xl border border-ink/10 bg-ink/[0.02] px-4 py-3">
+      <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.18em] text-slate400 hover:text-accent-ink">
+        Proof detail
+      </summary>
+      <div className="mt-3 space-y-3 text-sm text-slate400">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.18em]">
+            Claim
+          </div>
+          <p className="mt-1 text-ink">{PROOF_CLAIM[proof.type]}</p>
+        </div>
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.18em]">
+            How it was derived
+          </div>
+          <p className="mt-1">{PROOF_DERIVATION[proof.type]}</p>
+        </div>
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.18em]">
+            Verification
+          </div>
+          <p className="mt-1 font-mono text-[11px]">
+            source: {proof.source} · method: {proof.verification_method} ·
+            confidence: {proof.confidence} (static per method — a deeper
+            reference does not raise confidence)
+          </p>
+        </div>
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.18em]">
+            Supporting evidence
+          </div>
+          <div className="mt-1">
+            <ProofSupporting proof={proof} graph={graph} />
+          </div>
+        </div>
+      </div>
+    </details>
+  );
 }
 
 function formatDate(iso: string | null): string {
@@ -691,6 +1025,7 @@ export default async function WalletProfilePage({
                       </div>
                     </div>
                   )}
+                  <ProofDetail proof={proof} graph={profile.trustGraph} />
                 </li>
               ))}
             </ul>
