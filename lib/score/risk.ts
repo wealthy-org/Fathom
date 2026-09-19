@@ -128,7 +128,12 @@ function evaluateFreshWallet(stats: OnchainStats, now: Date): Evaluation {
     };
   }
 
-  const evidence = { ageDays, txCount: stats.txCount };
+  const evidence = {
+    ageDays,
+    txCount: stats.txCount,
+    maxAgeDays: THRESHOLDS.risk.freshWalletMaxAgeDays,
+    maxTxCount: THRESHOLDS.risk.freshWalletMaxTxCount,
+  };
   const ageOld = ageDays >= THRESHOLDS.risk.freshWalletMaxAgeDays;
   // txCount null = riwayat terpotong; jangan anggap aktif atau pasif.
   const activeEnough =
@@ -185,19 +190,22 @@ function evaluateConcentration(graph: TrustGraphSummary): Evaluation {
     };
   }
 
-  const totalInteractions = graph.relationships.reduce(
+  const counterpartyInteractions = graph.relationships.reduce(
     (sum, rel) => sum + rel.interactionCount,
     0,
   );
   const top = graph.relationships.reduce((best, rel) =>
     rel.interactionCount > best.interactionCount ? rel : best,
   );
-  const share = totalInteractions === 0 ? 0 : top.interactionCount / totalInteractions;
+  const share =
+    counterpartyInteractions === 0
+      ? 0
+      : top.interactionCount / counterpartyInteractions;
 
   const evidence = {
     topCounterparty: top.counterparty,
     topInteractions: top.interactionCount,
-    totalInteractions,
+    counterpartyInteractions,
     share,
     threshold: THRESHOLDS.risk.concentrationTopShare,
   };

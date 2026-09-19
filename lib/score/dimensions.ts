@@ -4,14 +4,19 @@ import type { Proof, ProofType } from "@/lib/score/proofs";
  * Reputation dimensions (Spec 03). Presentasi/kerangka, bukan skor.
  *
  * Hanya dimension yang punya proof nyata yang berstatus "supported". Sisanya
- * tetap ditampilkan sebagai slot dengan alasan jujur + fase yang akan mengisinya,
- * supaya tidak ada nilai 0 palsu yang menyamar sebagai "tidak ada reputasi".
+ * tetap ditampilkan sebagai slot dengan alasan jujur, supaya tidak ada nilai 0
+ * palsu yang menyamar sebagai "tidak ada reputasi".
+ *
+ * Catatan naming: dimension ini bernama `contract_history` / "Contract History",
+ * bukan `protocol_history` di Spec 00/02. Implementasi punya bukti contract
+ * (counterparty `is_contract`), bukan identitas protocol — proof
+ * `protocol_history` sejati menunggu mapping contract→protocol terverifikasi.
  */
 
 export type DimensionId =
   | "economic_history"
   | "counterparty_history"
-  | "protocol_history"
+  | "contract_history"
   | "community_trust"
   | "risk_signals";
 
@@ -23,10 +28,8 @@ export interface DimensionState {
   status: DimensionStatus;
   /** Proof yang mengisi dimension ini (kosong kalau unsupported). */
   proofTypes: ProofType[];
-  /** Alasan kalau unsupported. */
+  /** Alasan kalau unsupported — wallet-scoped, bukan janji fase. */
   reason: string | null;
-  /** Fase yang akan menyuplai data (null kalau sudah supported). */
-  suppliedBy: string | null;
 }
 
 interface DimensionDefinition {
@@ -34,7 +37,6 @@ interface DimensionDefinition {
   label: string;
   proofTypes: ProofType[];
   reason: string | null;
-  suppliedBy: string | null;
 }
 
 // Urutan mengikuti Spec 03 §Dimensions.
@@ -44,36 +46,30 @@ const DEFINITIONS: DimensionDefinition[] = [
     label: "Economic History",
     proofTypes: ["wallet_age", "transaction_history", "economic_history"],
     reason: null,
-    suppliedBy: null,
   },
   {
     id: "counterparty_history",
     label: "Counterparty History",
     proofTypes: ["unique_counterparty", "repeat_counterparty"],
-    reason: "No counterparty relationship data has been indexed.",
-    suppliedBy: "Spec 04",
+    reason: "No counterparty relationship evidence exists for this wallet yet.",
   },
   {
-    id: "protocol_history",
-    label: "Protocol History",
-    proofTypes: ["protocol_history"],
-    reason: null,
-    suppliedBy: null,
+    id: "contract_history",
+    label: "Contract History",
+    proofTypes: ["contract_history"],
+    reason: "No contract counterparty evidence exists for this wallet yet.",
   },
   {
     id: "community_trust",
     label: "Community Trust",
     proofTypes: ["role_attestation"],
-    reason:
-      "Attestations are supporting evidence only — they do not create reputation on their own.",
-    suppliedBy: "Spec 07",
+    reason: "No structured attestation evidence exists for this wallet yet.",
   },
   {
     id: "risk_signals",
     label: "Risk Signals",
     proofTypes: [],
-    reason: "Risk signals are not evaluated yet.",
-    suppliedBy: "Spec 05",
+    reason: "No risk signal could be evaluated for this wallet yet.",
   },
 ];
 

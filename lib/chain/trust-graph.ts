@@ -4,6 +4,7 @@ import {
   counterparties,
   trustGraphState,
   walletRelationships,
+  walletTransactions,
 } from "@/lib/db/schema";
 import { normalizeAddress } from "@/lib/chain/address";
 import { fetchAddressTransactions } from "@/lib/chain/blockscout";
@@ -15,6 +16,8 @@ const MS_PER_DAY = 86_400_000;
 const SOURCE = "blockscout";
 // ponytail: BigInt(0) bukan literal 0n — target TS proyek masih ES2017.
 const ZERO = BigInt(0);
+// Batas hash bukti per relasi — representatif, bukan daftar lengkap.
+const MAX_TX_HASHES = 5;
 
 export interface RelationshipSummary {
   counterparty: Address;
@@ -27,6 +30,8 @@ export interface RelationshipSummary {
   lastInteractionAt: Date | null;
   /** Jarak hari antara interaksi pertama & terakhir; null kalau tak ada timestamp. */
   durationDays: number | null;
+  /** Hash transaksi representatif (capped) untuk evidence_reference tx-level. */
+  txHashes: string[];
 }
 
 export interface TrustGraphSummary {
@@ -35,6 +40,8 @@ export interface TrustGraphSummary {
   /** Relasi terlama (hari) di antara counterparty; null kalau tidak ada. */
   longestRelationshipDays: number | null;
   relationships: RelationshipSummary[];
+  /** Hash transaksi pertama yang menyentuh subject — untuk proof wallet_age. */
+  firstTxHash: string | null;
   /**
    * false = walk tx kena batas halaman. Semua angka adalah lower bound,
    * bukan nilai pasti. Jangan terbitkan proof turunan saat incomplete.
@@ -67,19 +74,20 @@ interface Aggregate {
   received: bigint;
   first: Date | null;
   last: Date | null;
+  txHashes: string[];
+}
+
+interface DeriveTx {
+  from: Address;
+  to: Address | null;
+  valueWei: string;
+  timestamp: Date | null;
+  toIsContract: boolean;
+  hash: string | null;
 }
 
 /** Derivasi pasangan counterparty dari perspektif subject. Pure, tanpa I/O. */
-function derive(
-  subject: Address,
-  txs: {
-    from: Address;
-    to: Address | null;
-    valueWei: string;
-    timestamp: Date | null;
-    toIsContract: boolean;
-  }[],
-): Map<Address, Aggregate> {
+function derive(subject: Address, txs: DeriveTx[]): Map<Address, Aggregate> {
   const byCounterparty = new Map<Address, Aggregate>();
 
   const touch = (
@@ -88,6 +96,7 @@ function derive(
     sent: bigint,
     received: bigint,
     at: Date | null,
+    hash: string | null,
   ) => {
     const agg = byCounterparty.get(counterparty) ?? {
       isContract,
@@ -96,11 +105,13 @@ function derive(
       received: ZERO,
       first: null,
       last: null,
+      txHashes: [],
     };
     agg.count += 1;
     agg.sent += sent;
     agg.received += received;
     agg.isContract = agg.isContract || isContract;
+    if (hash) agg.txHashes.push(hash);
     if (at) {
       if (!agg.first || at < agg.first) agg.first = at;
       if (!agg.last || at > agg.last) agg.last = at;
@@ -112,14 +123,28 @@ function derive(
     const value = parseWei(tx.valueWei);
     if (tx.from === subject) {
       if (tx.to === null || tx.to === subject) continue; // deploy / self
-      touch(tx.to, tx.toIsContract, value, ZERO, tx.timestamp);
+      touch(tx.to, tx.toIsContract, value, ZERO, tx.timestamp, tx.hash);
     } else if (tx.to === subject) {
-      touch(tx.from, false, ZERO, value, tx.timestamp);
+      touch(tx.from, false, ZERO, value, tx.timestamp, tx.hash);
     }
     // else: tx yang melibatkan subject hanya via token/internal — di luar semantik.
   }
 
   return byCounterparty;
+}
+
+/** Hash tx first yang menyentuh subject: ambil relasi dengan first paling awal. */
+function firstTxHash(pairs: Map<Address, Aggregate>): string | null {
+  let best: string | null = null;
+  let bestAt: number | null = null;
+  for (const agg of pairs.values()) {
+    if (!agg.first || agg.txHashes.length === 0) continue;
+    if (bestAt === null || agg.first.getTime() < bestAt) {
+      bestAt = agg.first.getTime();
+      best = agg.txHashes[0];
+    }
+  }
+  return best;
 }
 
 function toSummary(pairs: Map<Address, Aggregate>, complete: boolean): TrustGraphSummary {
@@ -133,6 +158,7 @@ function toSummary(pairs: Map<Address, Aggregate>, complete: boolean): TrustGrap
       firstInteractionAt: agg.first,
       lastInteractionAt: agg.last,
       durationDays: durationDays(agg.first, agg.last),
+      txHashes: agg.txHashes.slice(0, MAX_TX_HASHES),
     }),
   );
 
@@ -143,6 +169,7 @@ function toSummary(pairs: Map<Address, Aggregate>, complete: boolean): TrustGrap
     ).length,
     longestRelationshipDays: longestDuration(relationships),
     relationships,
+    firstTxHash: firstTxHash(pairs),
     complete,
   };
 }
@@ -191,6 +218,24 @@ async function readCached(address: Address): Promise<TrustGraphSummary | null> {
     )
     .where(eq(walletRelationships.subjectAddress, address));
 
+  // Pull capped tx hashes per counterparty for tx-level evidence refs on cache hits.
+  const txRows = await db
+    .select({
+      counterparty: walletTransactions.counterpartyAddress,
+      transactionHash: walletTransactions.transactionHash,
+      timestamp: walletTransactions.timestamp,
+    })
+    .from(walletTransactions)
+    .where(eq(walletTransactions.subjectAddress, address))
+    .orderBy(walletTransactions.timestamp);
+
+  const hashByCounterparty = new Map<string, string[]>();
+  for (const tx of txRows) {
+    const list = hashByCounterparty.get(tx.counterparty) ?? [];
+    if (list.length < MAX_TX_HASHES) list.push(tx.transactionHash);
+    hashByCounterparty.set(tx.counterparty, list);
+  }
+
   const relationships: RelationshipSummary[] = rows.map((row) => ({
     counterparty: row.counterparty as Address,
     isContract: row.isContract,
@@ -200,7 +245,21 @@ async function readCached(address: Address): Promise<TrustGraphSummary | null> {
     firstInteractionAt: row.firstInteractionAt,
     lastInteractionAt: row.lastInteractionAt,
     durationDays: durationDays(row.firstInteractionAt, row.lastInteractionAt),
+    txHashes: hashByCounterparty.get(row.counterparty) ?? [],
   }));
+
+  const pairs = new Map<Address, Aggregate>();
+  for (const rel of relationships) {
+    pairs.set(rel.counterparty, {
+      isContract: rel.isContract,
+      count: rel.interactionCount,
+      sent: rel.valueSent,
+      received: rel.valueReceived,
+      first: rel.firstInteractionAt,
+      last: rel.lastInteractionAt,
+      txHashes: rel.txHashes,
+    });
+  }
 
   return {
     uniqueCounterparties: relationships.length,
@@ -209,6 +268,7 @@ async function readCached(address: Address): Promise<TrustGraphSummary | null> {
     ).length,
     longestRelationshipDays: longestDuration(relationships),
     relationships,
+    firstTxHash: firstTxHash(pairs),
     complete: state.complete,
   };
 }
@@ -282,6 +342,36 @@ class ExplorerTrustGraphProvider implements TrustGraphProvider {
           source: SOURCE,
         })),
       );
+    }
+
+    // Simpan hash transaksi yang menyentuh subject supaya evidence_reference
+    // proof bisa menunjuk ke halaman tx. Filter sama dengan derive. Hash null
+    // (tidak tersedia) dilewati — jangan menyimpan baris tanpa bukti.
+    // ponytail: delete+insert non-atomik, cache turunan — sembuh saat fetch ulang.
+    await db
+      .delete(walletTransactions)
+      .where(eq(walletTransactions.subjectAddress, normalized));
+
+    const txRows = fetched.transactions
+      .filter((tx) => {
+        if (!tx.hash) return false;
+        if (tx.from === normalized) return tx.to !== null && tx.to !== normalized;
+        return tx.to === normalized;
+      })
+      .map((tx) => ({
+        subjectAddress: normalized,
+        counterpartyAddress: (tx.from === normalized ? tx.to : tx.from) as Address,
+        transactionHash: tx.hash as string,
+        direction: tx.from === normalized ? "sent" : "received",
+        valueWei: BigInt(tx.valueWei),
+        toIsContract: tx.toIsContract,
+        blockNumber: tx.blockNumber,
+        timestamp: tx.timestamp,
+        source: SOURCE,
+      }));
+
+    if (txRows.length > 0) {
+      await db.insert(walletTransactions).values(txRows);
     }
 
     await db

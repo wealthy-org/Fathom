@@ -545,7 +545,7 @@ export default function Home() {
                       ["Transactions", "1,842"],
                       ["Counterparties", "126"],
                       ["Repeat Relationships", "34"],
-                      ["Protocol History", "18 protocols"],
+                      ["Contract History", "18 contracts"],
                     ].map(([k, v]) => (
                       <div key={k}>
                         <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-slate400">
@@ -565,7 +565,7 @@ export default function Home() {
                     {[
                       "Long-term wallet activity",
                       "34 repeat counterparties",
-                      "Consistent protocol usage",
+                      "Consistent contract activity",
                       "Verified attestations",
                     ].map((t) => (
                       <li key={t} className="flex items-center gap-2">
@@ -613,7 +613,7 @@ export default function Home() {
                 [
                   "layers",
                   "Fragmented Evidence",
-                  "Relevant wallet activity is scattered across transactions, protocols, and counterparties.",
+                  "Relevant wallet activity is scattered across transactions, contracts, and counterparties.",
                 ],
                 [
                   "gauge",
@@ -725,7 +725,7 @@ export default function Home() {
                 ["clock", "Wallet Age", "3 years 8 months", "On-chain history"],
                 ["coins", "Economic History", "$284K+ historical activity", "Transaction history"],
                 ["users", "Repeat Counterparties", "34 relationships", "Wallet interactions"],
-                ["boxes", "Protocol History", "18 protocols interacted with", "On-chain activity"],
+                ["boxes", "Contract History", "18 contracts interacted with", "On-chain activity"],
               ].map(([icon, k, v, src]) => (
                 <article
                   key={k}
@@ -762,23 +762,23 @@ export default function Home() {
             <div className="grid items-center gap-16 lg:grid-cols-2">
               <div>
                 <Head
-                  kick="Why this reputation?"
+                  kick="Why this evidence?"
                   title={
                     <>
-                      Don&apos;t just see the score.
+                      Don&apos;t just read a number.
                       <br />
                       See why.
                     </>
                   }
-                  sub="The score is only the summary. The evidence is the reputation."
+                  sub="Fathom has no global score yet. It shows the dimensions and proofs behind a wallet so every claim can be traced back to evidence."
                 />
                 <div className="card mt-10 space-y-4">
                   {[
                     ["Economic History", "supported"],
                     ["Counterparty History", "supported"],
-                    ["Protocol History", "supported"],
+                    ["Contract History", "supported"],
                     ["Community Trust", "awaiting data"],
-                    ["Risk Signals", "supported"],
+                    ["Risk Signals", "evaluated"],
                   ].map(([k, v]) => (
                     <div key={k}>
                       <div className="flex items-center justify-between font-mono text-xs">
@@ -815,7 +815,7 @@ export default function Home() {
                     {[
                       "3.8 years active",
                       "34 repeat counterparties",
-                      "18 protocols",
+                      "18 contracts",
                       "Consistent activity",
                       "7 verified attestations",
                     ].map((t) => (
@@ -853,12 +853,12 @@ export default function Home() {
             <Head
               kick="Trust graph"
               title="Trust is built through relationships."
-              sub="A wallet doesn't exist in isolation. Fathom maps interactions between wallets, protocols, contracts, counterparties, and attestations to reveal the relationships behind on-chain behavior."
+              sub="A wallet doesn't exist in isolation. Fathom maps interactions between wallets, contracts, and counterparties, alongside attestations, to reveal the relationships behind on-chain behavior."
             />
             <div className="mt-14 grid gap-10 lg:grid-cols-2">
               <div className="card glass overflow-x-auto rounded-3xl border border-ink/10 p-7 sm:p-9">
                 <div className="min-w-[300px] font-mono text-[11px] leading-8 text-slate400 sm:text-xs">
-                  <div className="text-center text-accent-ink">Protocol</div>
+                  <div className="text-center text-accent-ink">Contract</div>
                   <div className="text-center text-slate400">│</div>
                   <div className="flex justify-center gap-8">
                     <span>Wallet A</span>
@@ -884,7 +884,7 @@ export default function Home() {
                     "Repeated interactions",
                     "Relationship duration",
                     "Counterparty history",
-                    "Protocol interactions",
+                    "Contract interactions",
                     "Attestations",
                     "Disputes",
                   ].map((t) => (
@@ -965,24 +965,24 @@ export default function Home() {
         {/* 9. RISK SIGNALS */}
         <section className="px-5 py-28 sm:px-6 lg:px-8 lg:py-40">
           <div className="mx-auto max-w-7xl">
-            <Head
+<Head
               kick="Risk signals"
               title="Trust isn't only about positive signals."
-              sub="Fathom surfaces explainable risk signals that may require further investigation."
+              sub="Fathom surfaces explainable risk signals that may require further investigation. Every signal carries evidence you can inspect."
             />
             <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                ["alert", "Fresh Wallet", "Wallet created recently"],
-                ["network", "Concentrated Graph", "High concentration of interactions"],
-                ["repeat", "Circular Relationships", "Potential circular transaction pattern"],
-                ["users", "Vouch Clustering", "Unusual concentration in vouch relationships"],
+                ["clock", "Fresh Wallet", "Detected when a wallet is young and has little activity."],
+                ["network", "Concentrated Counterparty Graph", "Detected when interactions concentrate on one counterparty."],
+                ["repeat", "Circular Relationship Graph", "Detected when value flows back and forth between several wallets."],
+                ["users", "Suspicious Vouch Clustering", "Not yet evaluable — vouching is not implemented (Spec 08)."],
               ].map(([icon, t, d]) => (
                 <article
                   key={t}
-                  className="card flex flex-col rounded-3xl border border-red-400/20 bg-red-400/5 p-7 sm:p-9"
+                  className="card flex flex-col rounded-3xl border border-ink/10 bg-ink/[0.03] p-7 sm:p-9"
                 >
-                  <IconBox name={icon as IconName} tone="danger" />
-                  <div className="mt-6 font-mono text-[9px] uppercase tracking-[0.18em] text-red-600">
+                  <IconBox name={icon as IconName} />
+                  <div className="mt-6 font-mono text-[9px] uppercase tracking-[0.18em] text-accent-ink">
                     {t}
                   </div>
                   <p className="mt-3 text-sm leading-7 text-slate400">{d}</p>
@@ -990,7 +990,9 @@ export default function Home() {
               ))}
             </div>
             <p className="card mt-8 text-sm text-slate400">
-              Signals are evidence for investigation — not automatic accusations.
+              These are illustrative signals. A detected signal is evidence for
+              investigation — not an automatic accusation, and never an
+              aggregate risk level.
             </p>
           </div>
         </section>
@@ -1022,9 +1024,9 @@ export default function Home() {
                   {[
                     ["Economic History", "supported"],
                     ["Counterparty History", "supported"],
-                    ["Protocol History", "supported"],
+                    ["Contract History", "supported"],
                     ["Community Trust", "awaiting data"],
-                    ["Risk Signals", "supported"],
+                    ["Risk Signals", "evaluated"],
                   ].map(([k, v]) => (
                     <div
                       key={k}

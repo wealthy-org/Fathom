@@ -24,6 +24,7 @@ function graph(partial: Partial<TrustGraphSummary>): TrustGraphSummary {
     longestRelationshipDays: null,
     relationships: [],
     complete: true,
+    firstTxHash: null,
     ...partial,
   };
 }
@@ -43,6 +44,7 @@ function rel(
     firstInteractionAt: null,
     lastInteractionAt: null,
     durationDays: null,
+    txHashes: [],
   };
 }
 

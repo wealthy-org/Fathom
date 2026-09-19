@@ -21,6 +21,11 @@ export function explorerAddressUrl(address: Address): string {
   return `${EXPLORER_BASE_URL}/address/${address}`;
 }
 
+/** URL halaman transaksi di explorer — dipakai sebagai evidence_reference proof tx-level. */
+export function explorerTransactionUrl(hash: string): string {
+  return `${EXPLORER_BASE_URL}/tx/${hash}`;
+}
+
 export interface AddressTxSummary {
   // null = jumlah pasti tidak diketahui (hasil terpotong batas halaman).
   txCount: number | null;
@@ -123,6 +128,13 @@ export async function fetchAddressTxSummary(
   };
 }
 
+const TX_HASH_RE = /^0x[0-9a-fA-F]{64}$/;
+
+function asTxHash(value: unknown): string | null {
+  if (typeof value !== "string" || !TX_HASH_RE.test(value)) return null;
+  return value.toLowerCase();
+}
+
 export interface AddressTransaction {
   from: Address;
   // null = contract creation (tidak ada penerima).
@@ -131,6 +143,10 @@ export interface AddressTransaction {
   valueWei: string;
   timestamp: Date | null;
   toIsContract: boolean;
+  /** Hash transaksi — dipakai untuk evidence_reference tx-level. null = tidak tersedia. */
+  hash: string | null;
+  /** Nomor block; null bila tidak tersedia di respons. */
+  blockNumber: number | null;
 }
 
 export interface AddressTransactions {
@@ -170,6 +186,8 @@ export async function fetchAddressTransactions(
     for (const raw of items) {
       if (raw === null || typeof raw !== "object") continue;
       const tx = raw as {
+        hash?: unknown;
+        block?: { height?: unknown } | null;
         from?: { hash?: unknown };
         to?: { hash?: unknown; is_contract?: unknown } | null;
         value?: unknown;
@@ -177,12 +195,18 @@ export async function fetchAddressTransactions(
       };
       const from = asAddress(tx.from?.hash);
       if (!from) continue;
+      const blockHeight =
+        typeof (tx.block as { height?: unknown } | undefined)?.height === "number"
+          ? ((tx.block as { height: number }).height)
+          : null;
       transactions.push({
         from,
         to: asAddress(tx.to?.hash),
         valueWei: typeof tx.value === "string" ? tx.value : "0",
         timestamp: parseTimestamp(tx.timestamp),
         toIsContract: tx.to?.is_contract === true,
+        hash: asTxHash(tx.hash),
+        blockNumber: blockHeight,
       });
     }
 

@@ -92,7 +92,7 @@ Implemented:
 
 - 01 Wallet Search
 - 02 Proof Engine — `wallet_age`, `transaction_history`, `unique_counterparty`,
-  `repeat_counterparty`, `economic_history`, `protocol_history`,
+  `repeat_counterparty`, `economic_history`, `contract_history`,
   `role_attestation`
 - 03 Reputation Profile — dimension framework; no global score
 - 04 Trust Graph — unique/repeat counterparties and relationship duration

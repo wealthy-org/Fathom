@@ -25,7 +25,7 @@ const PROOF_LABELS: Record<ProofType, string> = {
   unique_counterparty: "Unique counterparties",
   repeat_counterparty: "Repeat counterparties",
   economic_history: "Economic history",
-  protocol_history: "Protocol history",
+  contract_history: "Contract history",
   role_attestation: "Role attestation",
 };
 
@@ -95,7 +95,7 @@ function formatProofValue(proof: Proof): string {
       };
       return `Sent ${formatNative(nativeSentWei)} · Received ${formatNative(nativeReceivedWei)}`;
     }
-    case "protocol_history": {
+    case "contract_history": {
       const { contractCounterparties } = proof.value as {
         contractCounterparties: number;
       };
@@ -169,9 +169,7 @@ function DimensionRow({ dimension }: { dimension: DimensionState }) {
             : "Backed by dedicated risk signals."}
         </p>
       ) : (
-        <p className="mt-2 text-sm text-slate400">
-          {dimension.reason} Will be supplied by {dimension.suppliedBy}.
-        </p>
+        <p className="mt-2 text-sm text-slate400">{dimension.reason}</p>
       )}
     </li>
   );
@@ -388,6 +386,17 @@ function RiskSection({
   signals: RiskSignal[];
 }) {
   const detected = new Set(signals.map((signal) => signal.type));
+  const hasClear = states.some((state) => state.status === "clear");
+  const hasNotEvaluable = states.some((state) => state.status === "not_evaluable");
+
+  const summary =
+    detected.size > 0
+      ? "Risk signals were detected — inspect each one's evidence."
+      : hasClear
+        ? "Signal checks ran without raising a detection. This is not a guarantee of safety; signals cover only what indexed data can evaluate."
+        : hasNotEvaluable
+          ? "No signal could be evaluated from the data available for this wallet. That does not mean it is clear — it means there is not enough evidence to check."
+          : "No risk signal was evaluated for this wallet.";
 
   return (
     <section id="risk" className="mt-10">
@@ -398,18 +407,14 @@ function RiskSection({
         separate from reputation.
       </p>
 
-      {signals.length === 0 && (
-        <div className="shine-border mt-5 rounded-2xl border border-ink/10 bg-ink/[0.03] p-6 text-sm text-slate400">
-          No supported risk signal is present for this wallet.
-        </div>
-      )}
+      <div className="shine-border mt-5 rounded-2xl border border-ink/10 bg-ink/[0.03] p-6 text-sm text-slate400">
+        {summary}
+      </div>
 
       <ul className="mt-5 space-y-3">
         {states.map((state) => {
           const isDetected = detected.has(state.id);
-          const statusLabel = isDetected
-            ? state.severity ?? "detected"
-            : state.status.replace("_", " ");
+          const statusLabel = state.status.replace("_", " ");
           return (
             <li
               key={state.id}
@@ -551,14 +556,14 @@ export default async function WalletProfilePage({
             }
           />
           <Field
-            label="Transactions"
+            label="Direct transactions"
             value={
               profile.txCount === null ? "Not available" : String(profile.txCount)
             }
             note={
               profile.txCount === null
                 ? "Exceeds the indexed query limit."
-                : undefined
+                : "Native transfers where this wallet is the sender or receiver — not internal or token transfers."
             }
           />
           <Field label="First on-chain tx" value={formatDate(profile.firstTxAt)} />
@@ -606,6 +611,12 @@ export default async function WalletProfilePage({
             it. Proofs are evidence — they never contain a reputation score.
             Fathom shows only what indexed data supports.
           </p>
+          <p className="mt-2 max-w-2xl text-sm text-slate400">
+            Proof references point to raw evidence. Where a transaction hash is
+            indexed, a proof links to that transaction; otherwise it falls back
+            to the wallet&apos;s explorer page (address-level evidence). We never
+            fabricate a reference that is not backed by indexed data.
+          </p>
 
           {profile.proofs.length === 0 ? (
             <div className="shine-border mt-5 rounded-2xl border border-ink/10 bg-ink/[0.03] p-6 text-sm text-slate400">
@@ -634,14 +645,52 @@ export default async function WalletProfilePage({
                     <span>method: {proof.verification_method}</span>
                     <span>confidence: {proof.confidence}</span>
                   </div>
-                  <a
-                    href={proof.evidence_reference}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 inline-block break-all font-mono text-[11px] text-accent-ink hover:underline"
-                  >
-                    {proof.evidence_reference}
-                  </a>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <a
+                      href={proof.evidence_reference}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-block break-all font-mono text-[11px] text-accent-ink hover:underline"
+                    >
+                      {proof.evidence_reference}
+                    </a>
+                    <span
+                      className={`rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] ${
+                        proof.evidence_references &&
+                        proof.evidence_references.length > 0
+                          ? "border border-accent-ink/20 text-accent-ink"
+                          : "border border-ink/10 text-slate400"
+                      }`}
+                    >
+                      {proof.evidence_references &&
+                      proof.evidence_references.length > 0
+                        ? "transaction-level"
+                        : "address-level"}
+                    </span>
+                  </div>
+                  {(proof.evidence_references ?? []).length > 1 && (
+                    <div className="mt-2">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-slate400">
+                        Evidence: {(proof.evidence_references ?? []).length}{" "}
+                        transactions
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        {(proof.evidence_references ?? [])
+                          .slice(1)
+                          .map((ref, i) => (
+                            <a
+                              key={ref}
+                              href={ref}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded border border-ink/15 px-2 py-0.5 font-mono text-[10px] text-ink/70 hover:border-accent-ink/30 hover:text-accent-ink"
+                            >
+                              tx {i + 2}
+                            </a>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

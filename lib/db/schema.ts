@@ -125,6 +125,41 @@ export const trustGraphState = pgTable("trust_graph_state", {
   fetchedAt: timestamptz("fetched_at").notNull().defaultNow(),
 });
 
+/**
+ * Aktivitas transaksi langsung per subject (Spec 00 `wallet_activity`).
+ * Menyimpan hash transaksi yang relevan supaya evidence_reference proof bisa
+ * menunjuk ke halaman tx (bukan hanya halaman address). Hash unik per subject —
+ * tx pertama yang menyentuh subject disimpan; baris diperbarui saat refresh.
+ */
+export const walletTransactions = pgTable(
+  "wallet_transactions",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    subjectAddress: char("subject_address", { length: 42 })
+      .notNull()
+      .references(() => counterparties.address),
+    counterpartyAddress: char("counterparty_address", { length: 42 })
+      .notNull()
+      .references(() => counterparties.address),
+    transactionHash: char("transaction_hash", { length: 66 }).notNull(),
+    // "sent" | "received" dilihat dari perspektif subject.
+    direction: varchar("direction", { length: 12 }).notNull(),
+    valueWei: numeric("value_wei", { precision: 78, scale: 0, mode: "bigint" })
+      .notNull()
+      .default(ZERO),
+    toIsContract: boolean("to_is_contract").notNull().default(false),
+    blockNumber: bigint("block_number", { mode: "number" }),
+    timestamp: timestamptz("timestamp"),
+    source: varchar("source", { length: 32 }),
+    fetchedAt: timestamptz("fetched_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_tx_subject").on(t.subjectAddress, t.timestamp),
+    // Satu subject hanya satu baris per tx hash — refresh idempoten.
+    unique("wallet_transactions_subject_hash").on(t.subjectAddress, t.transactionHash),
+  ],
+);
+
 export const vouches = pgTable(
   "vouches",
   {
