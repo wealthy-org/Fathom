@@ -26,6 +26,47 @@ export function explorerTransactionUrl(hash: string): string {
   return `${EXPLORER_BASE_URL}/tx/${hash}`;
 }
 
+/**
+ * Klasifikasi outcome fetch untuk observability (bukan perubahan semantik hasil).
+ * Tujuan utama: membedakan "upstream mati / timeout / shape rusak" dari
+ * "empty hasil yang valid". Hanya outcome non-ok yang dilog — `ok`/`empty`
+ * artinya tidak ada gangguan, bukan indikasi outage.
+ */
+export type IngestOutcome =
+  | "ok"
+  | "empty"
+  | "timeout"
+  | `http_${number}`
+  | "malformed"
+  | "error";
+
+type IngestContext =
+  | "summary" // fetchAddressTxSummary (v1 txlist asc/desc)
+  | "count" // countDirectTransactions (v2 walk)
+  | "walk"; // fetchAddressTransactions (v2 walk counterpary)
+
+/**
+ * Satu baris log per outcome non-ok. Guarded — logging tidak boleh pernah
+ * merusak ingestion (error di console.error dibungkam, bukan dilempar).
+ * Tidak log body respons, credential, atau payload transaksi. Alamat wallet
+ * disertakan hanya karena berguna untuk debug ingestion per-wallet.
+ */
+function logIngest(
+  context: IngestContext,
+  address: Address | null,
+  outcome: IngestOutcome,
+  detail?: string,
+): void {
+  if (outcome === "ok" || outcome === "empty") return;
+  try {
+    const addr = address ? ` wallet=${address}` : "";
+    const d = detail ? ` detail=${detail}` : "";
+    console.error(`[fathom:ingest] ${context}${addr} outcome=${outcome}${d}`);
+  } catch {
+    // never break ingestion
+  }
+}
+
 export interface AddressTxSummary {
   // null = jumlah pasti tidak diketahui (hasil terpotong batas halaman).
   txCount: number | null;
@@ -33,7 +74,24 @@ export interface AddressTxSummary {
   lastTxAt: Date | null;
 }
 
-async function fetchJson(url: string): Promise<unknown> {
+/**
+ * Hasil fetch bertag: membawa outcome transpor + data JSON. `ok:false`
+ * mempertahankan null-semantics lama pada pemanggil (tetap diperlakukan
+ * "tidak tersedia"), hanya menambahkan alasan untuk observability.
+ */
+interface FetchResult {
+  ok: boolean;
+  data: unknown;
+  /** Alasan kegagalan transpor — hanya diisi saat ok:false. */
+  outcome?: Extract<IngestOutcome, "timeout" | `http_${number}` | "malformed" | "error">;
+  detail?: string;
+}
+
+async function fetchJson(
+  url: string,
+  address: Address | null,
+  context: IngestContext,
+): Promise<FetchResult> {
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), THRESHOLDS.explorer.requestTimeoutMs);
   try {
@@ -42,10 +100,18 @@ async function fetchJson(url: string): Promise<unknown> {
       headers: { accept: "application/json", "user-agent": "fathom-indexer/1.0" },
       cache: "no-store",
     });
-    if (!res.ok) return null;
-    return (await res.json()) as unknown;
-  } catch {
-    return null;
+    if (!res.ok) {
+      const outcome = `http_${res.status}` as const;
+      logIngest(context, address, outcome);
+      return { ok: false, data: null, outcome };
+    }
+    const body = (await res.json()) as unknown;
+    return { ok: true, data: body };
+  } catch (e) {
+    const aborted = (e as { name?: string })?.name === "AbortError";
+    const outcome: IngestOutcome = aborted ? "timeout" : "error";
+    logIngest(context, address, outcome);
+    return { ok: false, data: null, outcome };
   } finally {
     clearTimeout(timer);
   }
@@ -78,11 +144,25 @@ async function countDirectTransactions(address: Address): Promise<number | null>
   let total = 0;
 
   for (let page = 0; page < THRESHOLDS.explorer.maxPages; page++) {
-    const body = await fetchJson(url);
-    if (body === null || typeof body !== "object") return null;
+    const result = await fetchJson(url, address, "count");
+    if (!result.ok) return null;
+    const body = result.data;
+    if (body === null || typeof body !== "object") {
+      logIngest("count", address, "malformed", "body-not-object");
+      return null;
+    }
     const items = (body as { items?: unknown }).items;
-    if (!Array.isArray(items)) return null;
+    if (!Array.isArray(items)) {
+      logIngest("count", address, "malformed", "items-not-array");
+      return null;
+    }
     total += items.length;
+
+    // Empty awal = address tanpa transaksi langsung → fakta 0, bukan outage.
+    if (items.length === 0) {
+      logIngest("count", address, "empty");
+      return total;
+    }
 
     const next = (body as { next_page_params?: unknown }).next_page_params;
     if (!next || typeof next !== "object") return total;
@@ -104,17 +184,32 @@ export async function fetchAddressTxSummary(
   const listBase = `${EXPLORER_BASE_URL}/api?module=account&action=txlist&address=${address}&page=1&offset=1&sort=`;
 
   const [asc, desc, txCount] = await Promise.all([
-    fetchJson(`${listBase}asc`),
-    fetchJson(`${listBase}desc`),
+    fetchJson(`${listBase}asc`, address, "summary"),
+    fetchJson(`${listBase}desc`, address, "summary"),
     countDirectTransactions(address),
   ]);
 
-  const firstResult = (asc as { result?: unknown })?.result;
-  const lastResult = (desc as { result?: unknown })?.result;
-  if (!Array.isArray(firstResult) || !Array.isArray(lastResult)) return null;
+  // v1 txlist: result = [] artinya address benar-benar tidak pernah transaction.
+  // Inilah cara "empty" membeda dengan fetch failure (ok:false di atas).
+  const firstResult = asc.ok ? asc.data : null;
+  const lastResult = desc.ok ? desc.data : null;
 
-  const first = firstResult[0] as { timeStamp?: unknown } | undefined;
-  const last = lastResult[0] as { timeStamp?: unknown } | undefined;
+  const firstArr = Array.isArray((firstResult as { result?: unknown })?.result)
+    ? ((firstResult as { result: unknown[] }).result as unknown[])
+    : null;
+  const lastArr = Array.isArray((lastResult as { result?: unknown })?.result)
+    ? ((lastResult as { result: unknown[] }).result as unknown[])
+    : null;
+
+  // Keduanya harus array (semantik lama): salah satu gagal/malformed →
+  // fetch failure → null, agar refresh parsial tidak menimpa cache valid.
+  // Keduanya array (bisa kosong []) → data ada / tidak‑ada.
+  if (!firstArr || !lastArr) {
+    return null;
+  }
+
+  const first = firstArr?.[0] as { timeStamp?: unknown } | undefined;
+  const last = lastArr?.[0] as { timeStamp?: unknown } | undefined;
 
   if (!first && !last) {
     // Address tanpa transaksi — 0 itu fakta, bukan karangan.
@@ -178,10 +273,18 @@ export async function fetchAddressTransactions(
   const transactions: AddressTransaction[] = [];
 
   for (let page = 0; page < maxPages; page++) {
-    const body = await fetchJson(url);
-    if (body === null || typeof body !== "object") return null;
+    const result = await fetchJson(url, address, "walk");
+    if (!result.ok) return null;
+    const body = result.data;
+    if (body === null || typeof body !== "object") {
+      logIngest("walk", address, "malformed", "body-not-object");
+      return null;
+    }
     const items = (body as { items?: unknown }).items;
-    if (!Array.isArray(items)) return null;
+    if (!Array.isArray(items)) {
+      logIngest("walk", address, "malformed", "items-not-array");
+      return null;
+    }
 
     for (const raw of items) {
       if (raw === null || typeof raw !== "object") continue;
