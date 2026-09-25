@@ -40,5 +40,20 @@ Open http://localhost:3000.
 
 ## Routes
 
-- `/` — landing page
-- `/docs` — developer docs (sample + playground proxy to `NEXT_PUBLIC_APP_URL`)
+- `/` — landing page (hero, trust graph, activity marquee, explain, integrate, FAQ)
+- `/docs` — developer docs for `GET /api/reputation/{address}`:
+  live sample response, request playground (cURL/JS/Python snippets +
+  real preview card), endpoint reference, 17 response fields, error shapes,
+  limits, build recipes, changelog. Sample + playground call the external
+  app (`APP_API_BASE` in `lib/site.ts`, sourced from `NEXT_PUBLIC_APP_URL`).
+
+## Project structure
+
+```text
+app/            / page, /docs page, layout (next/font), providers
+components/     landing-*.tsx sections, docs-*.tsx docs page,
+                layout/Navbar.tsx + Logo.tsx, trust-graph-visualization.tsx
+lib/site.ts     APP_URL / APP_API_BASE — single source for the external app URL
+lib/chain/      address regex + trust-graph types (viz only, no RPC here)
+lib/score/      score/tier shared types (docs field reference)
+```

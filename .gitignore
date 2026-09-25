@@ -48,7 +48,7 @@ contracts/cache/
 contracts/lib/
 contracts/broadcast/
 
-docs
+/docs
 graphify-out
 AGENTS.md
 .claude

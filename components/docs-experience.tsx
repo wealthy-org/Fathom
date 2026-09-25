@@ -715,7 +715,7 @@ export function DocsExperience({ sampleCode }: { sampleCode: string }) {
           </section>
 
           <footer className="mt-10 border-t border-ink/10 pt-5">
-            <div className="mt-4 grid gap-2 border-t border-ink/10 pt-3 md:grid-cols-2 md:items-center">
+            <div className="grid gap-2 md:grid-cols-2 md:items-center">
               <div className="text-xs leading-4 text-slate400">
                 © 2026 Fathom
               </div>

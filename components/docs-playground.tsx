@@ -9,6 +9,7 @@ import {
 } from "react";
 import { ADDRESS_RE } from "@/lib/chain/address";
 import { shortAddress } from "@/components/activity-utils";
+import { APP_API_BASE } from "@/lib/site";
 import { DocsCode } from "@/components/docs-code";
 
 export interface DocsPlaygroundHandle {
@@ -49,7 +50,7 @@ const RISK_COLOR: Record<string, string> = {
   high: "text-accent-ink",
 };
 
-const REMOTE_APP = "https://fathom-xi-bice.vercel.app";
+const REMOTE_APP = APP_API_BASE;
 
 function requestSnippet(kind: LangTab, address: string): string {
   if (kind === "curl") {

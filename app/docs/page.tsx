@@ -1,11 +1,12 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { DocsExperience } from "@/components/docs-experience";
+import { APP_API_BASE } from "@/lib/site";
 
 /** Wallet contoh publik — seed data nyata, sama dengan landing/footer. */
 const EXAMPLE_WALLET = "0xa6d9e296e6833d211278faf255c76ed193c9ac19";
 
 /** API app eksternal — docs landing fetch sample dari sini, bukan DB lokal. */
-const REMOTE_APP = "https://fathom-xi-bice.vercel.app";
+const REMOTE_APP = APP_API_BASE;
 
 /**
  * Developer experience docs. Sample hero JSON = data sungguhan
@@ -74,9 +75,7 @@ export default async function DocsPage() {
           id="main-content"
           className="relative z-10 mx-auto max-w-5xl pb-24 pt-10"
         >
-          <div className="mt-14">
-            <DocsExperience sampleCode={sample} />
-          </div>
+          <DocsExperience sampleCode={sample} />
         </main>
       </div>
     </div>
