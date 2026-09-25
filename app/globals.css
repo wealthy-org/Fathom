@@ -1,0 +1,263 @@
+@import "tailwindcss";
+
+@theme {
+  /* Reference language (docs/design/reference.html), Fathom-flavored:
+     warm neutrals, ink text, red accent, purple kept as risk secondary. */
+  --color-ink: #232427;
+  --color-coal: #171719;
+  --color-accent: #e34a32;
+  --color-accent-ink: #b93a26;
+  --color-purple: #9945ff;
+  --color-slate400: #55575c;
+  --color-faint: #777980;
+  --color-mist: #f4f5f5;
+  --color-canvas: #ecedee;
+
+  --font-sans: var(--font-inter), sans-serif;
+  --font-display: var(--font-space-grotesk), sans-serif;
+  --font-serif-accent: var(--font-instrument-serif), serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+
+  --shadow-brutal:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 14px 30px -18px rgba(35, 36, 39, 0.25);
+  --shadow-brutal-sm: 0 8px 20px -12px rgba(35, 36, 39, 0.25);
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--color-canvas);
+}
+
+body {
+  color: #232427;
+  font-family: var(--font-sans), sans-serif;
+  /* Full-bleed strip (w-screen) tanpa horizontal scrollbar. `clip`
+     bukan scroll container — sticky navbar tetap bekerja. */
+  overflow-x: clip;
+}
+
+/* Canvas pattern (docs/design/ref-2.html): 44px grid + fixed token glows.
+   Body has no background so the negative z-index layer stays visible. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(35, 36, 39, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(35, 36, 39, 0.05) 1px, transparent 1px),
+    radial-gradient(circle at 88% 18%, rgba(227, 74, 50, 0.12), transparent 30%),
+    radial-gradient(circle at 66% 86%, rgba(227, 74, 50, 0.1), transparent 26%);
+  background-size:
+    44px 44px,
+    44px 44px,
+    auto,
+    auto;
+  background-attachment: fixed, fixed, fixed, fixed;
+}
+
+@media (max-width: 640px) {
+  body::before {
+    background-attachment: scroll;
+  }
+}
+
+.font-display {
+  letter-spacing: -0.035em;
+}
+
+.font-serif-accent {
+  font-family: var(--font-serif), serif;
+  font-style: italic;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: rgba(227, 74, 50, 0.22);
+  color: #232427;
+}
+
+/* Focus — visible ring on all interactive elements (WCAG 2.4.7). */
+:where(a, button, [role="button"], [role="tab"], input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Minimum comfortable touch target (WCAG 2.5.8). */
+.min-touch {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+::placeholder {
+  color: #777980;
+}
+
+/* Surface system — single source of truth for cards/buttons/chips/inputs.
+   Class names predate the reference migration; visuals follow
+   docs/design/reference.html (soft layers, pills, hairlines). */
+@layer components {
+  .panel-brutal {
+    border-radius: 1.75rem;
+    border: 1px solid rgba(35, 36, 39, 0.08);
+    background: #fff;
+    box-shadow: var(--shadow-brutal);
+  }
+
+  .btn-brutal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    background: var(--color-coal);
+    color: #fff;
+    /* font-family: var(--font-sans), sans-serif; */
+    font-family: var(--font-mono), sans-serif;
+    font-weight: 600;
+    box-shadow: var(--shadow-brutal-sm);
+    transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+  }
+  .btn-brutal:hover {
+    transform: translateY(-1px);
+    background: #000;
+  }
+  .btn-brutal:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+  .btn-brutal:disabled {
+    opacity: 0.6;
+    transform: none;
+  }
+
+  .btn-brutal-light {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(35, 36, 39, 0.1);
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--color-ink);
+    font-family: var(--font-sans), sans-serif;
+    font-weight: 600;
+    box-shadow: var(--shadow-brutal-sm);
+    transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+  }
+  .btn-brutal-light:hover {
+    transform: translateY(-1px);
+    background: #fff;
+  }
+  .btn-brutal-light:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+  .btn-brutal-light:disabled {
+    opacity: 0.6;
+    transform: none;
+  }
+
+  .chip-mono {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    border: 1px solid rgba(35, 36, 39, 0.1);
+    background: rgba(35, 36, 39, 0.04);
+    padding: 0.125rem 0.625rem;
+    font-family: var(--font-mono), monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+  }
+
+  /* Small section label: mono uppercase slate. */
+  .lab {
+    font-family: var(--font-mono), monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-slate400);
+  }
+
+  /* Flash highlight for deep-linked cards (goto helper target). */
+  .flash {
+    animation: flash-ring 1.6s ease-out 1;
+  }
+  @keyframes flash-ring {
+    0% {
+      box-shadow: 0 0 0 3px rgba(227, 74, 50, 0.45), var(--shadow-brutal);
+    }
+    100% {
+      box-shadow: var(--shadow-brutal);
+    }
+  }
+
+  .input-brutal {
+    border-radius: 9999px;
+    border: 1px solid rgba(35, 36, 39, 0.1);
+    background: #f4f5f5;
+    color: var(--color-ink);
+  }
+  .input-brutal:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+    background: #fff;
+  }
+  .input-brutal[aria-invalid="true"] {
+    border-color: var(--color-accent);
+    background: #fff;
+  }
+  .input-brutal::placeholder {
+    color: #777980;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-marquee,
+  .animate-marquee-new {
+    animation: none;
+  }
+}
+
+/* Landing live-activity strip: slider horizontal jalan sendiri.
+   Track diduplikasi di component; translate -50% = satu putaran mulus. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Item baru dari polling: fade + naik sedikit saat masuk. */
+@keyframes marquee-new {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+
+.animate-marquee-new {
+  animation: marquee-new 500ms ease both;
+}
+
+/* Pause saat hover/fokus — parent .marquee-paused di component. */
+.marquee-paused:hover .animate-marquee,
+.marquee-paused:focus-within .animate-marquee {
+  animation-play-state: paused;
+}

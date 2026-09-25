@@ -1,0 +1,174 @@
+"use client";
+
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { APP_URL, APP_LINK_PROPS } from "@/lib/site";
+import { Logo } from "./Logo";
+
+export { Logo };
+
+/**
+ * Landing navbar: marketing only (Launch App, no wallet state).
+ * Wallet flows live in the external app (APP_URL).
+ */
+
+/**
+ * Set link navbar seragam untuk semua halaman landing.
+ * Anchor ditulis absolut (/#why) agar berfungsi dari halaman mana pun.
+ */
+export const DEFAULT_NAV_LINKS: Array<[string, string]> = [
+  ["Why Fathom", "/#why"],
+  ["How It Works", "/#explain"],
+  ["FAQ", "/#faq"],
+  ["Docs", "/docs"],
+];
+
+export function LaunchAppButton({ className = "" }: { className?: string }) {
+  return (
+    <a
+      href={APP_URL}
+      {...APP_LINK_PROPS}
+      className={`btn-brutal px-5 py-2.5 text-sm ${className}`}
+    >
+      <span>Launch App</span>
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M5 12h14" />
+        <path d="m12 5 7 7-7 7" />
+      </svg>
+    </a>
+  );
+}
+
+function MenuIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {open ? (
+        <>
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </>
+      ) : (
+        <>
+          <path d="M4 6h16" />
+          <path d="M4 12h16" />
+          <path d="M4 18h16" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+export function Navbar({
+  links = DEFAULT_NAV_LINKS,
+  actions,
+}: {
+  links?: Array<[string, string]>;
+  actions?: ReactNode;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    const onPointerDown = (e: PointerEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [menuOpen]);
+
+  return (
+    // Landing navbar: no wallet state, no search, no sign-in.
+    // Wallet flows live in the external app (APP_URL).
+    <nav
+      ref={navRef}
+      className="sticky top-3 z-50 mx-4 mt-3 sm:mx-8 sm:mt-5 lg:mx-12 font-mono"
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-1.5 rounded-full border border-black/5 bg-white/80 px-3 py-3 shadow-sm backdrop-blur-xl sm:gap-2 sm:px-4">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+          <Logo />
+        </div>
+          {links.length > 0 && (
+            <div className="hidden items-center gap-5 text-sm text-slate400 md:flex">
+              {links.map(([t, href]) => (
+                <a
+                  key={t}
+                  href={href}
+                  className="inline-flex min-touch items-center px-2 transition hover:text-ink"
+                >
+                  {t}
+                </a>
+              ))}
+            </div>
+          )}
+        <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-2 md:flex">{actions ?? <LaunchAppButton />}</div>
+          <div className="flex items-center md:hidden">
+            <LaunchAppButton className="px-4 py-2 text-xs" />
+              <button
+                type="button"
+                aria-label={menuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={menuOpen}
+                aria-controls="mobile-menu"
+                onClick={() => setMenuOpen((v) => !v)}
+                className="min-touch inline-flex items-center justify-center rounded-full p-2 text-ink font-mono"
+              >
+                <MenuIcon open={menuOpen} />
+              </button>
+            </div>
+          </div>
+        </div>
+        {menuOpen && (
+          <div
+            id="mobile-menu"
+            className="mt-2 rounded-3xl border border-black/5 bg-white/95 p-4 shadow-xl backdrop-blur-xl md:hidden"
+          >
+            {actions && (
+              <div className="mb-3 grid gap-2 border-b border-black/5 pb-3">
+                {actions}
+              </div>
+            )}
+            <div className="grid gap-1 text-sm">
+              {links.map(([t, href]) => (
+                <a
+                  key={t}
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex min-touch items-center rounded-2xl px-4 text-slate400 transition hover:bg-black/5 hover:text-ink"
+                >
+                  {t}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </nav>
+  );
+}
